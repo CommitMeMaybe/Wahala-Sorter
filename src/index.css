@@ -1,0 +1,37 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #F4EFEA;
+  --column-bg: #EAE2D9;
+  --card-bg: #FCFAF8;
+  --text: #2E231E;
+  --text-soft: #7A6B62;
+  --border: #DDD4CA;
+  --now: #C75B3A;
+  --now-soft: #F0DDD4;
+  --soon: #3F7D6A;
+  --soon-soft: #DCEAE4;
+  --later: #8A7B70;
+  --later-soft: #E8E2DC;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
