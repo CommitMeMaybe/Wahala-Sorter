@@ -9,14 +9,11 @@
   --column-bg: #EAE2D9;
   --card-bg: #FCFAF8;
   --text: #2E231E;
-  --text-soft: #7A6B62;
+  --text-soft: #6B5B52;
   --border: #DDD4CA;
   --now: #C75B3A;
-  --now-soft: #F0DDD4;
   --soon: #3F7D6A;
-  --soon-soft: #DCEAE4;
   --later: #8A7B70;
-  --later-soft: #E8E2DC;
 }
 
 html {

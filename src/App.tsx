@@ -1,54 +1,64 @@
-import { useState, useCallback, type FormEvent } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { Task, ColumnId } from './types';
+import { INITIAL_TASKS } from './data/seed';
+import { AddTaskForm } from './components/AddTaskForm';
+import { Board } from './components/Board';
 import './App.css';
 
-const COLUMNS: { id: ColumnId; label: string; description: string }[] = [
-  { id: 'now', label: 'Now', description: 'Right now, no delay' },
-  { id: 'soon', label: 'Soon', description: 'Today or tomorrow' },
-  { id: 'later', label: 'Later', description: 'This week, insha Allah' },
-];
-
-function formatTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-let nextId = 5;
-
-const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Call electrician about NEPA', column: 'now', createdAt: Date.now() - 1000 * 60 * 5 },
-  { id: '2', title: 'Buy cement from Mike\'s depot', column: 'now', createdAt: Date.now() - 1000 * 60 * 15 },
-  { id: '3', title: 'Reply Mr. Adebayo about the quote', column: 'soon', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
-  { id: '4', title: 'Pick up plumbing parts at Oyingbo', column: 'later', createdAt: Date.now() - 1000 * 60 * 60 * 5 },
+const COLUMNS = [
+  { id: 'now' as ColumnId, label: 'Now', description: 'Right now, no delay' },
+  { id: 'soon' as ColumnId, label: 'Soon', description: 'Today or tomorrow' },
+  { id: 'later' as ColumnId, label: 'Later', description: 'This week, insha Allah' },
 ];
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [input, setInput] = useState('');
+  const [nextId, setNextId] = useState(5);
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [announcement, setAnnouncement] = useState('');
+  const deleteTargetRef = useRef<ColumnId | null>(null);
 
-  const addTask = useCallback((e: FormEvent) => {
-    e.preventDefault();
-    const title = input.trim();
-    if (!title) return;
-    setTasks(prev => [...prev, { id: String(nextId++), title, column: 'now', createdAt: Date.now() }]);
-    setInput('');
-  }, [input]);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const tasksByColumn = useMemo(() => ({
+    now: tasks.filter(t => t.column === 'now'),
+    soon: tasks.filter(t => t.column === 'soon'),
+    later: tasks.filter(t => t.column === 'later'),
+  }), [tasks]);
+
+  const addTask = useCallback((title: string) => {
+    setTasks(prev => [...prev, {
+      id: String(nextId),
+      title,
+      column: 'now' as ColumnId,
+      createdAt: Date.now(),
+    }]);
+    setNextId(prev => prev + 1);
+    setAnnouncement(`Added "${title}" to Now.`);
+  }, [nextId]);
 
   const deleteTask = useCallback((id: string) => {
+    const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
-  }, []);
+    if (task) {
+      deleteTargetRef.current = task.column;
+      setAnnouncement('Task deleted.');
+    }
+  }, [tasks]);
 
   const moveTask = useCallback((id: string, to: ColumnId) => {
+    const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, column: to } : t));
     setDragOver(null);
-  }, []);
+    if (task) {
+      const label = COLUMNS.find(c => c.id === to)?.label || to;
+      setAnnouncement(`Moved to ${label}.`);
+    }
+  }, [tasks]);
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -75,71 +85,26 @@ function App() {
     <div className="app">
       <header className="header">
         <h1 className="title">Wahala Sorter</h1>
-        <p className="subtitle">
-          Your daily pile, sorted.
-        </p>
+        <p className="subtitle">Your daily pile, sorted.</p>
       </header>
 
-      <form className="add-form" onSubmit={addTask}>
-        <input
-          className="add-input"
-          placeholder="Add a new wahala..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          autoFocus
-        />
-        <button className="add-btn" type="submit" disabled={!input.trim()}>
-          Add
-        </button>
-      </form>
+      <AddTaskForm onAdd={addTask} />
 
-      <div className="board">
-        {COLUMNS.map(col => {
-          const colTasks = tasks.filter(t => t.column === col.id);
-          return (
-            <div
-              key={col.id}
-              className={`column column--${col.id}${dragOver === col.id ? ' column--drag-over' : ''}`}
-              onDragOver={e => handleDragOver(e, col.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={e => handleDrop(e, col.id)}
-            >
-              <div className="column-header">
-                <div className="column-title-row">
-                  <h2 className="column-title">{col.label}</h2>
-                  <span className="column-count">{colTasks.length}</span>
-                </div>
-                <p className="column-desc">{col.description}</p>
-              </div>
+      <Board
+        tasksByColumn={tasksByColumn}
+        columns={COLUMNS}
+        now={now}
+        dragOver={dragOver}
+        onDelete={deleteTask}
+        onMove={moveTask}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      />
 
-              <div className="column-body">
-                {colTasks.length === 0 && (
-                  <p className="empty-state">Empty. For now.</p>
-                )}
-                {colTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className="task"
-                    draggable
-                    onDragStart={e => handleDragStart(e, task.id)}
-                  >
-                    <div className="task-content">
-                      <span className="task-title">{task.title}</span>
-                      <span className="task-meta">{formatTime(task.createdAt)}</span>
-                    </div>
-                    <button
-                      className="task-delete"
-                      onClick={() => deleteTask(task.id)}
-                      aria-label="Delete task"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement}
       </div>
     </div>
   );
