@@ -82,10 +82,22 @@ function App() {
   }, [moveTask]);
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1 className="title">Wahala Sorter</h1>
-        <p className="subtitle">Your daily pile, sorted.</p>
+    <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
+      <header className="header" role="banner">
+        <div className="header-left">
+          <span className="pin pin--red" aria-hidden="true" />
+          <div>
+            <h1 className="header-title">Wahala Sorter</h1>
+            <span className="header-sub" aria-label="Evidence board mode">Evidence Board</span>
+          </div>
+        </div>
+        <button
+          className="back-btn"
+          onClick={() => { window.location.hash = '' }}
+          aria-label="Return to home page"
+        >
+          <span aria-hidden="true">&larr;</span> Home
+        </button>
       </header>
 
       <AddTaskForm onAdd={addTask} />
@@ -103,7 +115,7 @@ function App() {
         onDrop={handleDrop}
       />
 
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
+      <div aria-live="polite" aria-atomic="true" className="sr-only" role="status">
         {announcement}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Task, ColumnId } from '../types';
 import { formatTime } from '../utils/time';
 
@@ -12,6 +13,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, now, columns, onDelete, onMove, onDragStart }: TaskCardProps) {
   const idx = columns.indexOf(task.column);
+  const rot = useMemo(() => `${(Math.random() - 0.5) * 1.5}deg`, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight' && idx < columns.length - 1) {
@@ -31,6 +33,7 @@ export function TaskCard({ task, now, columns, onDelete, onMove, onDragStart }: 
       draggable
       tabIndex={0}
       role="listitem"
+      style={{ '--task-rot': rot } as React.CSSProperties}
       onDragStart={e => onDragStart(e, task.id)}
       onKeyDown={handleKeyDown}
       aria-label={`Task: ${task.title}. In ${task.column} column. Press left or right arrow to move.`}
