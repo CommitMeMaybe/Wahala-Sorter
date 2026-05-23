@@ -14,15 +14,16 @@ const EVIDENCE = [
 
 const PAPER_TONES = ['#F5E6C8', '#E8D5A8', '#F0E0C0', '#EDDFC5', '#F2E4C5']
 
-function EvidenceCard({ position, color, text: _text, index }: {
+const RNG = () => (crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF)
+
+function EvidenceCard({ position, color, index }: {
   position: [number, number, number]
   color: string
-  text: string
   index: number
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const rotZ = useMemo(() => (Math.random() - 0.5) * 0.3, [])
-  const offset = useMemo(() => Math.random() * Math.PI * 2, [])
+  const rotZ = useMemo(() => (RNG() - 0.5) * 0.3, [])
+  const offset = useMemo(() => RNG() * Math.PI * 2, [])
 
   useFrame((state) => {
     if (!meshRef.current) return
@@ -59,13 +60,13 @@ function Scene() {
   const groupRef = useRef<THREE.Group>(null)
 
   const cards = useMemo(() =>
-    EVIDENCE.map((t, i) => ({
-      text: t,
+    EVIDENCE.map((text, i) => ({
+      text,
       color: PAPER_TONES[i % PAPER_TONES.length],
       position: [
-        (Math.random() - 0.5) * 14,
-        (Math.random() - 0.5) * 9,
-        -3 - Math.random() * 7,
+        (RNG() - 0.5) * 14,
+        (RNG() - 0.5) * 9,
+        -3 - RNG() * 7,
       ] as [number, number, number],
       index: i,
     })), []
@@ -90,7 +91,7 @@ function Scene() {
       <group ref={groupRef}>
         {cards.map((card) => (
           <Float key={card.text} speed={0.3 + card.index * 0.04} rotationIntensity={0.03} floatIntensity={0.15}>
-            <EvidenceCard {...card} />
+            <EvidenceCard position={card.position} color={card.color} index={card.index} />
           </Float>
         ))}
       </group>

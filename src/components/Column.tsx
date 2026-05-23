@@ -7,9 +7,12 @@ interface ColumnProps {
   now: number;
   columnIds: ColumnId[];
   dragOver: ColumnId | null;
+  emptyMessage: string;
   onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
   onMove: (id: string, to: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
+  onDragEnd: () => void;
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, col: ColumnId) => void;
@@ -21,18 +24,23 @@ export function Column({
   now,
   columnIds,
   dragOver,
+  emptyMessage,
   onDelete,
+  onEdit,
   onMove,
   onDragStart,
+  onDragEnd,
   onDragOver,
   onDragLeave,
   onDrop,
 }: ColumnProps) {
+  const isDragOver = dragOver === column.id;
+
   return (
     <div
-      className={`column column--${column.id}${dragOver === column.id ? ' column--drag-over' : ''}`}
+      className={`column column--${column.id}${isDragOver ? ' column--drag-over' : ''}`}
       role="list"
-      aria-label={`${column.label} column`}
+      aria-label={`${column.label} column with ${tasks.length} tasks`}
       onDragOver={e => onDragOver(e, column.id)}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, column.id)}
@@ -47,7 +55,7 @@ export function Column({
 
       <div className="column-body">
         {tasks.length === 0 && (
-          <p className="empty-state">Empty. For now.</p>
+          <p className="empty-state">{emptyMessage}</p>
         )}
         {tasks.map(task => (
           <TaskCard
@@ -56,8 +64,10 @@ export function Column({
             now={now}
             columns={columnIds}
             onDelete={onDelete}
+            onEdit={onEdit}
             onMove={onMove}
             onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
           />
         ))}
       </div>

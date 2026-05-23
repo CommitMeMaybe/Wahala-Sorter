@@ -7,20 +7,62 @@ gsap.registerPlugin(ScrollTrigger)
 export function IntroScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
-  const boardRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
+  const parallaxRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const fadeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      const section = sectionRef.current
+      if (!section) return
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.2,
+        },
+      })
+
+      tl.fromTo(textRef.current,
+        { y: 80, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, duration: 1, ease: 'power2.out' },
+        0
+      )
+      tl.fromTo(bodyRef.current,
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
+        0.3
+      )
+
+      gsap.fromTo(parallaxRef.current,
+        { y: -60 },
+        { y: 60, duration: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1.2 } }
+      )
+
+      gsap.fromTo(fadeRef.current,
+        { scaleY: 0, opacity: 0, transformOrigin: 'bottom center' },
+        { scaleY: 1, opacity: 1, duration: 1.2, ease: 'power2.inOut', scrollTrigger: { trigger: section, start: 'top bottom', end: 'center center', scrub: 1 } }
+      )
+
+      gsap.to(scrollRef.current, {
+        opacity: 0.15,
+        duration: 1.6,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      })
+
       ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top center',
-        end: 'bottom center',
-        onEnter: () => {
-          gsap.to(textRef.current, { opacity: 1, y: 0, duration: 1.2, ease: 'power3.out' })
-          gsap.fromTo(boardRef.current,
-            { scaleY: 0, opacity: 0 },
-            { scaleY: 1, opacity: 1, duration: 1.5, ease: 'power3.inOut', delay: 0.3 }
-          )
+        trigger: section,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1,
+        onUpdate: (self) => {
+          const blur = self.progress * 3
+          section.style.setProperty('--cinematic-blur', `${blur}px`)
         },
       })
     }, sectionRef)
@@ -29,38 +71,55 @@ export function IntroScene() {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
+      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
+    >
       <div
-        ref={boardRef}
-        className="absolute inset-x-0 top-0 h-full origin-top opacity-0"
+        ref={parallaxRef}
+        className="absolute inset-x-0 top-0 h-[120%]"
         style={{
           background: 'linear-gradient(180deg, rgba(160,120,44,0.08) 0%, transparent 60%)',
           backgroundImage: `radial-gradient(circle at 20% 30%, rgba(160,120,44,0.05) 0%, transparent 50%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
+        ref={fadeRef}
+        className="absolute inset-x-0 bottom-0 h-1/2 opacity-0"
+        style={{
+          background: 'linear-gradient(0deg, rgba(160,120,44,0.06) 0%, transparent 100%)',
+          pointerEvents: 'none',
         }}
       />
 
       <div className="text-center max-w-4xl relative">
-        <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 border border-[#CC3333]/30 bg-[#1A0F0A]/60 backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-[#CC3333] animate-pulse" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#CC3333]/70 font-mono">Evidence Board</span>
-        </div>
-
         <h1
           ref={textRef}
-          className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight text-[#F5E6C8] opacity-0 translate-y-12"
+          className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight text-[#F5E6C8] leading-none"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Every day starts<br />with wahala.
+          Every day
+          <br />
+          <span className="italic text-[#E8D5A8]/80">arrives with its own pile.</span>
         </h1>
 
-        <p className="mt-8 text-base sm:text-lg text-[#E8D5A8]/60 max-w-xl mx-auto leading-relaxed">
-          The morning list. NEPA. Clients. Traffic. Another pickup at the park.{' '}
-          <span className="italic">Pile them on the board.</span>
+        <p
+          ref={bodyRef}
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/50 max-w-xl mx-auto leading-relaxed"
+        >
+          NEPA. Clients. Materials. Another run to the park.{' '}
+          <span className="italic text-[#E8D5A8]/70">A loose thread waiting to be pinned.</span>
         </p>
 
-        <div className="mt-12 flex justify-center gap-2 text-[#E8D5A8]/20 text-sm tracking-widest uppercase animate-pulse">
-          <span className="inline-block w-2 h-2 rounded-full bg-[#CC3333]" />
-          <span>Scroll to investigate</span>
+        <div
+          ref={scrollRef}
+          className="mt-16 flex flex-col items-center gap-3 text-[#E8D5A8]/40 tracking-widest uppercase"
+        >
+          <span className="text-[11px] font-mono letter-spacing-[0.25em]">Scroll to unravel</span>
+          <span className="block w-px h-10 bg-gradient-to-b from-[#E8D5A8]/40 to-transparent" />
         </div>
       </div>
     </section>

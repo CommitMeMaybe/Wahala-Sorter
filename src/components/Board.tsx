@@ -6,9 +6,12 @@ interface BoardProps {
   columns: ColumnType[];
   now: number;
   dragOver: ColumnId | null;
+  emptyMessages: Record<ColumnId, string>;
   onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
   onMove: (id: string, to: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
+  onDragEnd: () => void;
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, col: ColumnId) => void;
@@ -19,9 +22,12 @@ export function Board({
   columns,
   now,
   dragOver,
+  emptyMessages,
   onDelete,
+  onEdit,
   onMove,
   onDragStart,
+  onDragEnd,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -38,9 +44,12 @@ export function Board({
           now={now}
           columnIds={columnIds}
           dragOver={dragOver}
+          emptyMessage={emptyMessages[col.id]}
           onDelete={onDelete}
+          onEdit={onEdit}
           onMove={onMove}
           onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}

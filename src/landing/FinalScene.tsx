@@ -7,17 +7,53 @@ gsap.registerPlugin(ScrollTrigger)
 export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
+  const parallaxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      const section = sectionRef.current
+      if (!section) return
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.2,
+        },
+      })
+
+      tl.fromTo(textRef.current,
+        { y: 60, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1, ease: 'power2.out' },
+        0
+      )
+      tl.fromTo(bodyRef.current,
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
+        0.2
+      )
+      tl.fromTo(btnRef.current,
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
+        0.4
+      )
+
+      gsap.fromTo(parallaxRef.current,
+        { y: -40 },
+        { y: 40, duration: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1.2 } }
+      )
+
       ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top center',
-        end: 'bottom center',
-        onEnter: () => {
-          gsap.to(textRef.current, { opacity: 1, y: 0, duration: 1, ease: 'power3.out' })
-          gsap.to(btnRef.current, { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: 'power3.out' })
+        trigger: section,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1,
+        onUpdate: (self) => {
+          const blur = self.progress * 3
+          section.style.setProperty('--cinematic-blur', `${blur}px`)
         },
       })
     }, sectionRef)
@@ -26,37 +62,44 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32">
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at center, rgba(204,51,51,0.04) 0%, transparent 60%)',
-      }} />
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 overflow-hidden"
+      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
+    >
+      <div
+        ref={parallaxRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(204,51,51,0.04) 0%, transparent 60%)',
+        }}
+      />
 
       <div className="text-center max-w-2xl relative">
-        <div className="inline-flex items-center gap-2 mb-8 px-3 py-1.5 border border-[#3A6B9F]/30 bg-[#1A0F0A]/60 backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-[#3A6B9F]" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#3A6B9F]/60 font-mono">Case Closed</span>
-        </div>
-
         <h2
           ref={textRef}
-          className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8] opacity-0 translate-y-12"
+          className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Less noise.<br />
-          <span className="italic text-[#E8D5A8]/70">More focus.</span>
+          Stop holding it all.
+          <br />
+          <span className="italic text-[#E8D5A8]/70">Start pinning it down.</span>
         </h2>
 
-        <p className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-md mx-auto leading-relaxed">
-          Every lead sorted. Every pin in place. Stop carrying the casefile in your head — pin it to the board.
+        <p
+          ref={bodyRef}
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-md mx-auto leading-relaxed"
+        >
+          Your mind is not a board. Stop using it like one. Pin the noise. Find the signal.
         </p>
 
         <button
           ref={btnRef}
           onClick={onEnterApp}
-          className="mt-12 px-10 py-4 bg-[#CC3333] text-[#F5E6C8] text-sm font-semibold tracking-wider uppercase opacity-0 translate-y-8 hover:bg-[#AA2222] transition-colors duration-300 inline-flex items-center gap-3"
+          className="mt-12 px-10 py-4 bg-[#CC3333] text-[#F5E6C8] text-sm font-semibold tracking-wider uppercase hover:bg-[#AA2222] transition-colors duration-300 inline-flex items-center gap-3"
         >
           <span className="pin pin--yellow" style={{ width: '10px', height: '10px' }} />
-          Start Sorting
+          Enter the Board
         </button>
       </div>
 

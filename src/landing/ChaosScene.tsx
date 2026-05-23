@@ -14,64 +14,260 @@ const CHAOS_TASKS = [
 
 const NOTE_COLORS = ['#F5E6C8', '#E8D5A8', '#F0E0C0', '#EDDFC5', '#F2E4C5']
 
+interface PhysicsState {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  mass: number
+  springK: number
+  damping: number
+  rot: number
+  rotV: number
+}
+
 export function ChaosScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
   const boardRef = useRef<HTMLDivElement>(null)
+  const parallaxRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number>(0)
+  const cursorRef = useRef({ x: -9999, y: -9999, active: false })
+  const physicsRef = useRef<PhysicsState[]>([])
+  const noteElsRef = useRef<HTMLDivElement[]>([])
+  const noteCentersRef = useRef<{ x: number; y: number }[]>([])
+  const baseRotRef = useRef<number[]>([])
 
   useEffect(() => {
+    const section = sectionRef.current
+    const board = boardRef.current
+    if (!section || !board) return
+
+    const notes = Array.from(board.querySelectorAll<HTMLDivElement>('.chaos-note'))
+    noteElsRef.current = notes
+    const count = notes.length
+
+    baseRotRef.current = notes.map((_, i) => (i * 7) % 12 - 6)
+    noteCentersRef.current = new Array(count).fill({ x: 0, y: 0 })
+
+    const rng = () => (crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF)
+    const initialOffsets = notes.map(() => ({
+      x: (rng() - 0.5) * 240,
+      y: (rng() - 0.5) * 200,
+    }))
+
+    physicsRef.current = notes.map((_, i) => ({
+      x: initialOffsets[i].x,
+      y: initialOffsets[i].y,
+      vx: 0,
+      vy: 0,
+      mass: 0.8 + rng() * 0.6,
+      springK: 0.008 + rng() * 0.004,
+      damping: 0.88 + rng() * 0.06,
+      rot: baseRotRef.current[i],
+      rotV: 0,
+    }))
+
+    const updateCenters = () => {
+      notes.forEach((el, i) => {
+        const r = el.getBoundingClientRect()
+        const sr = section.getBoundingClientRect()
+        noteCentersRef.current[i] = {
+          x: r.left - sr.left + r.width / 2,
+          y: r.top - sr.top + r.height / 2,
+        }
+      })
+    }
+
+    updateCenters()
+
+    let floatPhase = 0
+
+    const tick = () => {
+      const bodies = physicsRef.current
+      const cx = cursorRef.current.x
+      const cy = cursorRef.current.y
+      const active = cursorRef.current.active
+      floatPhase += 0.015
+
+      for (let i = 0; i < count; i++) {
+        const b = bodies[i]
+        const center = noteCentersRef.current[i]
+        if (!center) continue
+
+        b.vx *= b.damping
+        b.vy *= b.damping
+
+        const springX = -b.springK * b.x
+        const springY = -b.springK * b.y
+        b.vx += springX / b.mass
+        b.vy += springY / b.mass
+
+        const ambientX = Math.sin(floatPhase + i * 2.7) * 0.04
+        const ambientY = Math.cos(floatPhase * 0.7 + i * 1.3) * 0.04
+        b.vx += ambientX
+        b.vy += ambientY
+
+        if (active) {
+          const dx = center.x - cx
+          const dy = center.y - cy
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < 260) {
+            const strength = Math.max(0, (260 - dist) / 260)
+            const force = strength * strength * 2.2
+            const nx = dx / Math.max(dist, 1)
+            const ny = dy / Math.max(dist, 1)
+            b.vx += (nx * force) / b.mass
+            b.vy += (ny * force) / b.mass
+
+            b.rotV += (nx * strength * 0.06) / b.mass
+          }
+        }
+
+        b.rotV *= 0.92
+        b.rot += b.rotV
+
+        b.x += b.vx
+        b.y += b.vy
+
+        const wobble = Math.sin(floatPhase * 1.3 + i * 3.1) * 0.08
+        notes[i].style.transform = `translate(${b.x}px, ${b.y}px) rotate(${b.rot + wobble}deg)`
+      }
+
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    const getPos = (clientX: number, clientY: number) => {
+      const sr = section.getBoundingClientRect()
+      cursorRef.current = {
+        x: clientX - sr.left,
+        y: clientY - sr.top,
+        active: true,
+      }
+    }
+
+    const handleMouse = (e: MouseEvent) => {
+      getPos(e.clientX, e.clientY)
+      updateCenters()
+    }
+
+    const handleTouch = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!t) return
+      getPos(t.clientX, t.clientY)
+      updateCenters()
+    }
+
+    const handleLeave = () => {
+      cursorRef.current.active = false
+    }
+
+    const handleResize = () => updateCenters()
+    window.addEventListener('resize', handleResize)
+
+    section.addEventListener('mousemove', handleMouse)
+    section.addEventListener('mouseleave', handleLeave)
+    section.addEventListener('touchmove', handleTouch, { passive: true })
+    section.addEventListener('touchend', handleLeave)
+
+    rafRef.current = requestAnimationFrame(tick)
+
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top center',
-        end: 'bottom center',
-        onEnter: () => {
-          gsap.to(textRef.current, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' })
+      const section = sectionRef.current
+      if (!section) return
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.2,
         },
       })
 
-      if (boardRef.current) {
-        const notes = boardRef.current.querySelectorAll('.chaos-note')
-        notes.forEach((el, i) => {
-          gsap.set(el, {
-            x: gsap.utils.random(-120, 120),
-            y: gsap.utils.random(-100, 100),
-            rotation: gsap.utils.random(-12, 12),
-            opacity: 0,
-          })
-          gsap.to(el, {
-            opacity: 1,
-            duration: 0.5,
-            delay: i * 0.06,
-            ease: 'power2.out',
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: 'top center',
-              end: 'center center',
-            },
-          })
+      tl.fromTo(textRef.current,
+        { y: 60, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1, ease: 'power2.out' },
+        0
+      )
+      tl.fromTo(bodyRef.current,
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
+        0.2
+      )
+
+      gsap.fromTo(parallaxRef.current,
+        { y: -40 },
+        { y: 40, duration: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1.2 } }
+      )
+
+      notes.forEach((el, i) => {
+        gsap.set(el, { opacity: 0 })
+        gsap.to(el, {
+          opacity: 1,
+          duration: 0.5,
+          delay: i * 0.06,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'center center',
+            scrub: 0.5,
+          },
         })
-      }
+      })
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1,
+        onUpdate: (self) => {
+          const blur = self.progress * 3
+          section.style.setProperty('--cinematic-blur', `${blur}px`)
+        },
+      })
     }, sectionRef)
 
-    return () => ctx.revert()
+    return () => {
+      ctx.revert()
+      window.removeEventListener('resize', handleResize)
+      section.removeEventListener('mousemove', handleMouse)
+      section.removeEventListener('mouseleave', handleLeave)
+      section.removeEventListener('touchmove', handleTouch)
+      section.removeEventListener('touchend', handleLeave)
+      cancelAnimationFrame(rafRef.current)
+    }
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
-      <div ref={boardRef} className="absolute inset-0 pointer-events-none" style={{
-        background: `radial-gradient(ellipse at center, rgba(160,120,44,0.06) 0%, transparent 70%)`,
-      }}>
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
+      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
+    >
+      <div
+        ref={parallaxRef}
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(160,120,44,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div ref={boardRef} className="absolute inset-0" style={{ pointerEvents: 'none' }}>
         {CHAOS_TASKS.map((task, i) => (
           <div
             key={task}
-            className="chaos-note absolute"
+            className="chaos-note absolute cursor-default select-none"
             style={{
               left: `${8 + (i * 6) % 84}%`,
               top: `${12 + (i * 8) % 76}%`,
               background: NOTE_COLORS[i % NOTE_COLORS.length],
               padding: '6px 10px',
-              transform: `rotate(${(i * 7) % 12 - 6}deg)`,
+              willChange: 'transform',
               fontSize: i % 3 === 0 ? '9px' : '7px',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -96,26 +292,22 @@ export function ChaosScene() {
         ))}
       </div>
 
-      <div className="text-center max-w-3xl relative">
+      <div className="text-center max-w-3xl relative pointer-events-none">
         <h2
           ref={textRef}
-          className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8] opacity-0 translate-y-12"
+          className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Too many leads.<br />
-          <span className="italic text-[#CC3333]">Not enough order.</span>
+          Everywhere at once.
+          <br />
+          <span className="italic text-[#CC3333]">Nowhere to pin it.</span>
         </h2>
-        <p className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-lg mx-auto leading-relaxed">
-          Pinned everywhere. No system. Every scrap of paper is a loose end. The board needs sorting.
+        <p
+          ref={bodyRef}
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-lg mx-auto leading-relaxed"
+        >
+          Fifteen scraps of paper. Zero system. Each one urgent. Each one forgotten by noon. The pile grows while you chase yesterday.
         </p>
-
-        <div className="mt-10 flex justify-center">
-          <div className="inline-flex items-center gap-4 px-6 py-3 border border-[#CC3333]/20 bg-[#1A0F0A]/40 backdrop-blur-sm">
-            <span className="text-[10px] tracking-[0.15em] uppercase text-[#CC3333]/50 font-mono">Evidence scattered</span>
-            <span className="w-1 h-4 bg-[#CC3333]" />
-            <span className="text-[10px] tracking-[0.15em] uppercase text-[#E8D5A8]/30 font-mono">{CHAOS_TASKS.length} items</span>
-          </div>
-        </div>
       </div>
     </section>
   )
