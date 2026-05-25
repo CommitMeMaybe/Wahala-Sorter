@@ -32,7 +32,10 @@ function App() {
   });
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
+  const [zoom, setZoom] = useState(1);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastKey = useRef(0);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -129,8 +132,59 @@ function App() {
     showToast(`Cleared ${count} task${count > 1 ? 's' : ''} from ${COLUMNS.find(c => c.id === col)?.label}.`);
   }, [tasksByColumn, showToast]);
 
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
+
+  const setZoomSafe = useCallback((v: number) => {
+    const clamped = Math.max(0.4, Math.min(1.45, +v.toFixed(2)));
+    setZoom(clamped);
+  }, []);
+
+  const zoomIn = useCallback(() => setZoomSafe(zoomRef.current + 0.15), [setZoomSafe]);
+  const zoomOut = useCallback(() => setZoomSafe(zoomRef.current - 0.15), [setZoomSafe]);
+  const zoomReset = useCallback(() => setZoom(1), []);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = { dist: Math.hypot(dx, dy), zoom: zoomRef.current };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      const scale = newDist / pinchRef.current.dist;
+      setZoomSafe(pinchRef.current.zoom * scale);
+    }
+  }, [setZoomSafe]);
+
+  const handleTouchEnd = useCallback(() => {
+    pinchRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const el = document.getElementById('main-content');
+    if (!el) return;
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: true });
+    el.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         if (undoStack.current) {
           setTasks(prev => [...prev, undoStack.current!]);
@@ -192,6 +246,33 @@ function App() {
     setTouchDragId(null);
   }, []);
 
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode(prev => {
+      if (prev) setSelectedIds(new Set());
+      return !prev;
+    });
+  }, []);
+
+  const toggleSelectId = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const bulkMove = useCallback((to: ColumnId) => {
+    selectedIds.forEach(id => moveTask(id, to));
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  }, [selectedIds, moveTask]);
+
+  const bulkDelete = useCallback(() => {
+    selectedIds.forEach(id => deleteTask(id));
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  }, [selectedIds, deleteTask]);
+
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
       <header className="header" role="banner">
@@ -203,6 +284,13 @@ function App() {
           </div>
         </div>
         <div className="header-right">
+          <button
+            className={`select-btn${selectionMode ? ' select-btn--active' : ''}`}
+            onClick={toggleSelectionMode}
+            aria-label={selectionMode ? 'Cancel selection' : 'Select multiple tasks'}
+          >
+            {selectionMode ? 'Cancel' : 'Select'}
+          </button>
           <span className="task-summary" aria-label={`${totalTasks} total tasks`}>
             <span className="task-summary-count">{totalTasks}</span>
             <span className="task-summary-label">pinned</span>
@@ -233,28 +321,55 @@ function App() {
         ))}
       </div>
 
-      <AnimatePresence mode="popLayout">
-        <Board
-          key="board"
-          tasksByColumn={tasksByColumn}
-          columns={COLUMNS}
-          now={now}
-          dragOver={dragOver}
-          touchDragId={touchDragId}
-          emptyMessages={EMPTY_MESSAGES}
-          onDelete={deleteTask}
-          onEdit={editTask}
-          onMove={moveTask}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onTouchDragStart={handleTouchDragStart}
-          onTouchDrop={handleTouchDrop}
-          onTouchDragCancel={handleTouchDragCancel}
-        />
-      </AnimatePresence>
+      {selectionMode && (
+        <div className="bulk-bar">
+          <span className="bulk-bar-count">{selectedIds.size} selected</span>
+          <div className="bulk-bar-actions">
+            {COLUMNS.map(col => (
+              <button key={col.id} className={`bulk-bar-btn bulk-bar-btn--${col.id}`} onClick={() => bulkMove(col.id)} disabled={selectedIds.size === 0}>
+                &rarr; {col.label}
+              </button>
+            ))}
+            <button className="bulk-bar-btn bulk-bar-btn--delete" onClick={bulkDelete} disabled={selectedIds.size === 0}>
+              &times; Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="zoom-area" style={{ '--zoom': zoom } as React.CSSProperties}>
+        <AnimatePresence mode="popLayout">
+          <Board
+            key="board"
+            tasksByColumn={tasksByColumn}
+            columns={COLUMNS}
+            now={now}
+            dragOver={dragOver}
+            touchDragId={touchDragId}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            emptyMessages={EMPTY_MESSAGES}
+            onDelete={deleteTask}
+            onEdit={editTask}
+            onMove={moveTask}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onTouchDragStart={handleTouchDragStart}
+            onTouchDrop={handleTouchDrop}
+            onTouchDragCancel={handleTouchDragCancel}
+            onToggleSelect={toggleSelectId}
+          />
+        </AnimatePresence>
+      </div>
+
+      <div className="zoom-controls" role="group" aria-label="Zoom controls">
+        <button className="zoom-btn" onClick={zoomOut} disabled={zoom <= 0.4} aria-label="Zoom out">&minus;</button>
+        <button className="zoom-btn zoom-btn--reset" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
+        <button className="zoom-btn" onClick={zoomIn} disabled={zoom >= 1.45} aria-label="Zoom in">+</button>
+      </div>
 
       <Footer />
 

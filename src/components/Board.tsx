@@ -7,6 +7,8 @@ interface BoardProps {
   now: number;
   dragOver: ColumnId | null;
   touchDragId: string | null;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
   emptyMessages: Record<ColumnId, string>;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
@@ -19,6 +21,7 @@ interface BoardProps {
   onTouchDragStart: (id: string) => void;
   onTouchDrop: (col: ColumnId) => void;
   onTouchDragCancel: () => void;
+  onToggleSelect?: (id: string) => void;
 }
 
 export function Board({
@@ -27,6 +30,8 @@ export function Board({
   now,
   dragOver,
   touchDragId,
+  selectionMode,
+  selectedIds,
   emptyMessages,
   onDelete,
   onEdit,
@@ -39,6 +44,7 @@ export function Board({
   onTouchDragStart,
   onTouchDrop,
   onTouchDragCancel,
+  onToggleSelect,
 }: BoardProps) {
   const columnIds: ColumnId[] = columns.map(c => c.id);
 
@@ -53,6 +59,8 @@ export function Board({
           columnIds={columnIds}
           dragOver={dragOver}
           touchDragId={touchDragId}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
           emptyMessage={emptyMessages[col.id]}
           onDelete={onDelete}
           onEdit={onEdit}
@@ -65,6 +73,7 @@ export function Board({
           onTouchDragStart={onTouchDragStart}
           onTouchDrop={onTouchDrop}
           onTouchDragCancel={onTouchDragCancel}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </div>

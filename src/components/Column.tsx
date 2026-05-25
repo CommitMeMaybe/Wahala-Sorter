@@ -8,6 +8,8 @@ interface ColumnProps {
   columnIds: ColumnId[];
   dragOver: ColumnId | null;
   touchDragId: string | null;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
   emptyMessage: string;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
@@ -20,6 +22,7 @@ interface ColumnProps {
   onTouchDragStart: (id: string) => void;
   onTouchDrop: (col: ColumnId) => void;
   onTouchDragCancel: () => void;
+  onToggleSelect?: (id: string) => void;
 }
 
 export function Column({
@@ -29,6 +32,8 @@ export function Column({
   columnIds,
   dragOver,
   touchDragId,
+  selectionMode,
+  selectedIds,
   emptyMessage,
   onDelete,
   onEdit,
@@ -41,6 +46,7 @@ export function Column({
   onTouchDragStart,
   onTouchDrop,
   onTouchDragCancel,
+  onToggleSelect,
 }: ColumnProps) {
   const isDragOver = dragOver === column.id;
 
@@ -82,6 +88,9 @@ export function Column({
             touchDragId={touchDragId}
             onTouchDragStart={onTouchDragStart}
             onTouchDragCancel={onTouchDragCancel}
+            selectionMode={selectionMode}
+            selected={selectedIds?.has(task.id)}
+            onToggleSelect={onToggleSelect}
           />
         ))}
       </div>

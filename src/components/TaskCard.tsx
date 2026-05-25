@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import type { Task, ColumnId } from '../types';
 import { formatTime } from '../utils/time';
 
@@ -14,11 +15,14 @@ interface TaskCardProps {
   touchDragId?: string | null;
   onTouchDragStart?: (id: string) => void;
   onTouchDragCancel?: () => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const COL_LABEL: Record<ColumnId, string> = { now: 'Now', soon: 'Soon', later: 'Later' };
 
-export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragStart, onDragEnd, touchDragId, onTouchDragStart, onTouchDragCancel }: TaskCardProps) {
+export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragStart, onDragEnd, touchDragId, onTouchDragStart, onTouchDragCancel, selectionMode, selected, onToggleSelect }: TaskCardProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
   const [showMenu, setShowMenu] = useState(false);
@@ -117,6 +121,10 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
   };
 
   const handleTap = () => {
+    if (selectionMode) {
+      onToggleSelect?.(task.id);
+      return;
+    }
     if (window.innerWidth <= 700) {
       if (isLifted) {
         onTouchDragCancel?.();
@@ -132,25 +140,37 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
     setShowMenu(false);
   };
 
+  const handleSelectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleSelect?.(task.id);
+  };
+
   const otherColumns = columns.filter(c => c !== task.column);
 
   return (
     <div
-      className={`task${isLifted ? ' task--lifted' : ''}`}
-      draggable
+      className={`task${isLifted ? ' task--lifted' : ''}${selectionMode ? ' task--selectable' : ''}${selected ? ' task--selected' : ''}`}
+      draggable={!selectionMode}
       tabIndex={0}
       role="listitem"
       style={{ '--task-rot': rot } as React.CSSProperties}
       onDragStart={handleDragStartInner}
       onDragEnd={onDragEnd}
       onKeyDown={handleKeyDown}
-      onDoubleClick={handleDoubleClick}
-      onClick={handleTap}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      aria-label={`Task: ${task.title}. In ${task.column} column. Press left or right arrow to move, Enter to edit.`}
+      onDoubleClick={selectionMode ? undefined : handleDoubleClick}
+      onClick={selectionMode ? () => onToggleSelect?.(task.id) : handleTap}
+      onTouchStart={selectionMode ? undefined : handleTouchStart}
+      onTouchMove={selectionMode ? undefined : handleTouchMove}
+      onTouchEnd={selectionMode ? undefined : handleTouchEnd}
+      aria-label={`Task: ${task.title}. In ${task.column} column. Press left or right arrow to move, Enter to edit.${selectionMode ? ' Tap to select.' : ''}`}
     >
+      {selectionMode && (
+        <div className="task-check" onClick={handleSelectClick}>
+          <div className={`task-check-box${selected ? ' task-check-box--checked' : ''}`}>
+            {selected && <svg viewBox="0 0 12 12" fill="none" className="task-check-icon"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </div>
+        </div>
+      )}
       <div className="task-content">
         {editing ? (
           <input
@@ -170,15 +190,17 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
           </>
         )}
       </div>
-      <button
-        className="task-delete"
-        onClick={handleDelete}
-        aria-label={`Delete "${task.title}"`}
-      >
-        &times;
-      </button>
+      {!selectionMode && (
+        <button
+          className="task-delete"
+          onClick={handleDelete}
+          aria-label={`Delete "${task.title}"`}
+        >
+          &times;
+        </button>
+      )}
 
-      {showMenu && (
+      {showMenu && createPortal(
         <div className="task-menu-overlay" onClick={() => setShowMenu(false)}>
           <div className="task-menu" onClick={e => e.stopPropagation()}>
             <div className="task-menu-header">
@@ -200,7 +222,8 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
