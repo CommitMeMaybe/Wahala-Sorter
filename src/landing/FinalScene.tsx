@@ -46,16 +46,18 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
         { y: 40, duration: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1.2 } }
       )
 
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const blur = self.progress * 3
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
-        },
-      })
+      if (window.innerWidth > 700) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          end: 'bottom top',
+          scrub: 1,
+          onUpdate: (self) => {
+            const blur = self.progress * 3
+            section.style.setProperty('--cinematic-blur', `${blur}px`)
+          },
+        })
+      }
     }, sectionRef)
 
     return () => ctx.revert()
@@ -88,7 +90,7 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
 
         <p
           ref={bodyRef}
-          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-md mx-auto leading-relaxed"
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-md mx-auto leading-relaxed"
         >
           Your mind is not a board. Stop using it like one. Pin the noise. Find the signal.
         </p>

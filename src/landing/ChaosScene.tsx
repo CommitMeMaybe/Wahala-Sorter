@@ -219,16 +219,18 @@ export function ChaosScene() {
         })
       })
 
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const blur = self.progress * 3
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
-        },
-      })
+      if (window.innerWidth > 700) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          end: 'bottom top',
+          scrub: 1,
+          onUpdate: (self) => {
+            const blur = self.progress * 3
+            section.style.setProperty('--cinematic-blur', `${blur}px`)
+          },
+        })
+      }
     }, sectionRef)
 
     return () => {
@@ -263,12 +265,12 @@ export function ChaosScene() {
             key={task}
             className="chaos-note absolute cursor-default select-none"
             style={{
-              left: `${8 + (i * 6) % 84}%`,
-              top: `${12 + (i * 8) % 76}%`,
+              left: `${6 + (i * 6) % 88}%`,
+              top: `${10 + (i * 7) % 80}%`,
               background: NOTE_COLORS[i % NOTE_COLORS.length],
               padding: '6px 10px',
               willChange: 'transform',
-              fontSize: i % 3 === 0 ? '9px' : '7px',
+                  fontSize: i % 3 === 0 ? '11px' : '10px',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               color: '#2C1810',
@@ -304,7 +306,7 @@ export function ChaosScene() {
         </h2>
         <p
           ref={bodyRef}
-          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/40 max-w-lg mx-auto leading-relaxed"
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto leading-relaxed"
         >
           Fifteen scraps of paper. Zero system. Each one urgent. Each one forgotten by noon. The pile grows while you chase yesterday.
         </p>

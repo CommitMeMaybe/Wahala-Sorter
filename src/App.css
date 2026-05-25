@@ -167,42 +167,26 @@
   outline-offset: 2px;
 }
 
-.board-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  justify-content: flex-end;
+.column--empty {
+  border: 1.5px dashed rgba(245, 230, 200, 0.12);
+  background: rgba(26, 15, 10, 0.2);
+  min-height: 200px;
 }
 
-.board-action-btn {
-  padding: 6px 14px;
-  min-height: 36px;
-  border: 1px solid rgba(245, 230, 200, 0.08);
-  background: rgba(26, 15, 10, 0.3);
-  color: var(--paper);
-  font-size: 0.6rem;
-  font-family: var(--font-body);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.2s;
-  opacity: 0.5;
+.column--empty .column-body {
+  min-height: 100px;
 }
 
-.board-action-btn:not(:disabled):hover {
-  opacity: 1;
-  background: rgba(204, 51, 51, 0.1);
-  border-color: rgba(204, 51, 51, 0.3);
+.column--now.column--empty {
+  border-color: rgba(204, 51, 51, 0.15);
 }
 
-.board-action-btn:disabled {
-  opacity: 0.15;
-  cursor: not-allowed;
+.column--soon.column--empty {
+  border-color: rgba(58, 107, 159, 0.15);
 }
 
-.board-action-btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+.column--later.column--empty {
+  border-color: rgba(107, 79, 58, 0.15);
 }
 
 .board {
@@ -482,7 +466,7 @@
 /* === Select Button === */
 .select-btn {
   padding: 8px 16px;
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid rgba(245, 230, 200, 0.15);
   background: rgba(26, 15, 10, 0.4);
   color: var(--paper);
@@ -514,8 +498,8 @@
 }
 
 .task-check-box {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border: 2px solid rgba(44, 24, 16, 0.2);
   border-radius: 4px;
   display: flex;
@@ -585,8 +569,8 @@
 }
 
 .bulk-bar-btn {
-  padding: 6px 14px;
-  min-height: 36px;
+  padding: 10px 16px;
+  min-height: 44px;
   border: 1px solid rgba(245, 230, 200, 0.1);
   background: rgba(245, 230, 200, 0.04);
   color: var(--paper);
@@ -613,6 +597,7 @@
 .bulk-bar-btn--soon { border-left: 2px solid #6BA3D6; }
 .bulk-bar-btn--later { border-left: 2px solid #B8957A; }
 .bulk-bar-btn--delete { border-left: 2px solid transparent; color: #FF6B6B; }
+.bulk-bar-btn--select-all { border-left: 2px solid rgba(245, 230, 200, 0.4); color: #E8D5A8; font-size: 0.55rem; }
 
 .board--touch-dragging {
   user-select: none;
@@ -622,7 +607,16 @@
 /* === Zoom === */
 .zoom-area {
   zoom: calc(var(--zoom, 1) * 100%);
-  transition: zoom 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.zoom-area--flash {
+  animation: zoom-flash 0.2s ease-out;
+}
+
+@keyframes zoom-flash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.15) saturate(1.3); }
+  100% { filter: brightness(1); }
 }
 
 .zoom-controls {
@@ -641,10 +635,10 @@
 }
 
 .zoom-btn {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -941,6 +935,20 @@
   padding: 0;
 }
 
+/* === Long-press progress indicator === */
+.task-longpress-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 2px 0 0 2px;
+  width: calc(var(--progress, 0) * 100%);
+  background: linear-gradient(90deg, #D4A017, #CC3333);
+  z-index: 10;
+  pointer-events: none;
+  transition: width 0.05s linear;
+}
+
 /* === Mobile Task Menu Popup === */
 .task-menu-overlay {
   display: none;
@@ -987,8 +995,8 @@
   }
 
   .task-menu-close {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1126,6 +1134,14 @@
   .task::before {
     animation: none !important;
   }
+
+  .zoom-area--flash {
+    animation: none !important;
+  }
+
+  .task-longpress-progress {
+    display: none !important;
+  }
 }
 
 @media (max-width: 700px) {
@@ -1177,10 +1193,6 @@
   .back-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .board-actions {
-    flex-wrap: wrap;
   }
 
   .toast {

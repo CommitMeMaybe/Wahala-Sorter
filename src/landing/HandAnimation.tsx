@@ -25,6 +25,9 @@ export function HandAnimation() {
 
       if (!handRef.current || !cardRef.current || !liftGlowRef.current || !tapBurstRef.current) return
 
+      const isMobile = window.innerWidth <= 700
+      const slideX = isMobile ? '60%' : '90%'
+
       gsap.set(handRef.current, { x: '0%', y: '-80%', opacity: 0, rotation: -5 })
       gsap.set(cardRef.current, { opacity: 0, scale: 1, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' })
       gsap.set(liftGlowRef.current, { opacity: 0, scale: 0.8 })
@@ -59,13 +62,13 @@ export function HandAnimation() {
       }, '-=0.1')
       // Phase 3: Hand + card slide right to next column
       .to(handRef.current, {
-        x: '90%',
+        x: slideX,
         y: '-8%',
         rotation: -3,
         duration: 0.35,
       }, '+=0.15')
       .to(cardRef.current, {
-        x: '90%',
+        x: slideX,
         y: '-8%',
         scale: 1.08,
         duration: 0.35,
@@ -114,10 +117,10 @@ export function HandAnimation() {
         ref={liftGlowRef}
         className="absolute rounded-full"
         style={{
-          left: 'calc(30% + 50px - 30px)',
-          top: 'calc(45% + 18px - 30px)',
-          width: '60px',
-          height: '60px',
+          left: 'clamp(80px, 30%, 200px)',
+          top: 'clamp(100px, 45%, 240px)',
+          width: 'clamp(40px, 8vw, 60px)',
+          height: 'clamp(40px, 8vw, 60px)',
           background: 'radial-gradient(circle, rgba(212,160,23,0.25) 0%, transparent 70%)',
           zIndex: 25,
           pointerEvents: 'none',
@@ -129,10 +132,10 @@ export function HandAnimation() {
         ref={handRef}
         className="absolute"
         style={{
-          left: '30%',
-          top: '45%',
-          width: 'clamp(50px, 8vw, 80px)',
-          height: 'clamp(62px, 10vw, 100px)',
+          left: 'clamp(60px, 30%, 200px)',
+          top: 'clamp(80px, 45%, 240px)',
+          width: 'clamp(44px, 10vw, 80px)',
+          height: 'clamp(54px, 12vw, 100px)',
         }}
       >
         <svg viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
@@ -167,15 +170,15 @@ export function HandAnimation() {
         ref={cardRef}
         className="absolute flex items-center justify-center"
         style={{
-          left: '30%',
-          top: '45%',
-          width: 'clamp(70px, 12vw, 100px)',
-          height: 'clamp(28px, 4.5vw, 36px)',
+          left: 'clamp(60px, 30%, 200px)',
+          top: 'clamp(80px, 45%, 240px)',
+          width: 'clamp(70px, 16vw, 100px)',
+          height: 'clamp(32px, 6vw, 40px)',
           background: '#F5E6C8',
           border: '1px solid #D4A017',
           borderRadius: '2px',
           padding: '4px 8px',
-          fontSize: 'clamp(6px, 1vw, 8px)',
+          fontSize: 'clamp(8px, 2vw, 10px)',
           color: '#2C1810',
           fontFamily: 'Sora, sans-serif',
           fontWeight: 600,
@@ -184,7 +187,7 @@ export function HandAnimation() {
           zIndex: 30,
         }}
       >
-        <span className="pin pin--yellow" style={{ position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)', width: '8px', height: '8px' }} />
+        <span className="pin pin--yellow" style={{ position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)', width: '10px', height: '10px' }} />
         NEPA don go
       </div>
 
@@ -193,10 +196,10 @@ export function HandAnimation() {
         ref={tapBurstRef}
         className="absolute rounded-full"
         style={{
-          left: 'calc(30% + 90% - 15px)',
-          top: 'calc(45% - 8% + 18px - 15px)',
-          width: '30px',
-          height: '30px',
+          left: 'clamp(140px, 120%, 340px)',
+          top: 'clamp(60px, 37%, 200px)',
+          width: 'clamp(24px, 5vw, 30px)',
+          height: 'clamp(24px, 5vw, 30px)',
           border: '3px solid #D4A017',
           zIndex: 35,
           pointerEvents: 'none',

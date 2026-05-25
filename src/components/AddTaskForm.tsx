@@ -23,6 +23,7 @@ export function AddTaskForm({ onAdd }: AddTaskFormProps) {
         value={input}
         onChange={e => setInput(e.target.value)}
         autoFocus
+        maxLength={200}
       />
       <button className="add-btn" type="submit" disabled={!input.trim()}>
         Add

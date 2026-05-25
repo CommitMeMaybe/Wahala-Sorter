@@ -51,21 +51,23 @@ export function SortingScene() {
 
         const notes = boardRef.current.querySelectorAll('.evidence-note')
         gsap.fromTo(notes,
-          { x: gsap.utils.random(-60, 60), y: gsap.utils.random(-40, 40), opacity: 0, rotation: gsap.utils.random(-10, 10) },
-          { x: 0, y: 0, opacity: 1, rotation: gsap.utils.random(-1.5, 1.5), duration: 0.5, stagger: 0.05, ease: 'back.out(1.5)', delay: 0.3, scrollTrigger: { trigger: section, start: 'top center', end: 'center top', scrub: 1 } }
+          { x: () => gsap.utils.random(-60, 60), y: () => gsap.utils.random(-40, 40), opacity: 0, rotation: () => gsap.utils.random(-10, 10) },
+          { x: 0, y: 0, opacity: 1, rotation: () => gsap.utils.random(-1.5, 1.5), duration: 0.5, stagger: 0.05, ease: 'back.out(1.5)', delay: 0.3, scrollTrigger: { trigger: section, start: 'top center', end: 'center top', scrub: 1 } }
         )
       }
 
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const blur = self.progress * 3
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
-        },
-      })
+      if (window.innerWidth > 700) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          end: 'bottom top',
+          scrub: 1,
+          onUpdate: (self) => {
+            const blur = self.progress * 3
+            section.style.setProperty('--cinematic-blur', `${blur}px`)
+          },
+        })
+      }
     }, sectionRef)
 
     return () => ctx.revert()
@@ -114,7 +116,7 @@ export function SortingScene() {
 
       <p
         ref={bodyRef}
-        className="text-base sm:text-lg text-[#E8D5A8]/40 max-w-lg mx-auto text-center leading-relaxed mb-16"
+        className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-16"
       >
         Three columns. One rule: what matters now goes first. Everything else finds its place.
       </p>

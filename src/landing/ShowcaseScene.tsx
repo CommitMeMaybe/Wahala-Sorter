@@ -46,16 +46,18 @@ export function ShowcaseScene() {
         { y: 40, duration: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1.2 } }
       )
 
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const blur = self.progress * 3
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
-        },
-      })
+      if (window.innerWidth > 700) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          end: 'bottom top',
+          scrub: 1,
+          onUpdate: (self) => {
+            const blur = self.progress * 3
+            section.style.setProperty('--cinematic-blur', `${blur}px`)
+          },
+        })
+      }
     }, sectionRef)
 
     return () => ctx.revert()
@@ -109,7 +111,7 @@ export function ShowcaseScene() {
 
       <p
         ref={bodyRef}
-        className="text-base sm:text-lg text-[#E8D5A8]/40 max-w-lg mx-auto text-center leading-relaxed mb-12"
+        className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-12"
       >
         Now. Soon. Later. Not complicated. Just clear. Pin what matters, leave the rest.
       </p>

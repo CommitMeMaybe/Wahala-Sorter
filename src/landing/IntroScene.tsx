@@ -55,16 +55,18 @@ export function IntroScene() {
         ease: 'sine.inOut',
       })
 
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1,
-        onUpdate: (self) => {
-          const blur = self.progress * 3
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
-        },
-      })
+      if (window.innerWidth > 700) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          end: 'bottom top',
+          scrub: 1,
+          onUpdate: (self) => {
+            const blur = self.progress * 3
+            section.style.setProperty('--cinematic-blur', `${blur}px`)
+          },
+        })
+      }
     }, sectionRef)
 
     return () => ctx.revert()
@@ -108,7 +110,7 @@ export function IntroScene() {
 
         <p
           ref={bodyRef}
-          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/50 max-w-xl mx-auto leading-relaxed"
+          className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-xl mx-auto leading-relaxed"
         >
           NEPA. Clients. Materials. Another run to the park.{' '}
           <span className="italic text-[#E8D5A8]/70">A loose thread waiting to be pinned.</span>

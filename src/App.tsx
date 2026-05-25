@@ -36,6 +36,7 @@ function App() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
   const [zoom, setZoom] = useState(1);
+  const [zoomFlashKey, setZoomFlashKey] = useState(0);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastKey = useRef(0);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -135,10 +136,25 @@ function App() {
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
+  const touchDragIdRef = useRef<string | null>(null);
+  touchDragIdRef.current = touchDragId;
+  const scrollDirRef = useRef(0);
+  const scrollRafRef = useRef<number | undefined>(undefined);
+
+  const doAutoScroll = useCallback(() => {
+    const board = document.querySelector('.board') as HTMLElement | null;
+    if (!board || scrollDirRef.current === 0) {
+      scrollRafRef.current = undefined;
+      return;
+    }
+    board.scrollLeft += scrollDirRef.current * 8;
+    scrollRafRef.current = requestAnimationFrame(doAutoScroll);
+  }, []);
 
   const setZoomSafe = useCallback((v: number) => {
     const clamped = Math.max(0.4, Math.min(1.45, +v.toFixed(2)));
     setZoom(clamped);
+    setZoomFlashKey(k => k + 1);
   }, []);
 
   const zoomIn = useCallback(() => setZoomSafe(zoomRef.current + 0.15), [setZoomSafe]);
@@ -161,11 +177,41 @@ function App() {
       const scale = newDist / pinchRef.current.dist;
       setZoomSafe(pinchRef.current.zoom * scale);
     }
-  }, [setZoomSafe]);
+
+    if (e.touches.length === 1 && touchDragIdRef.current) {
+      const touch = e.touches[0];
+      const edge = 40;
+      let dir = 0;
+      if (touch.clientX >= window.innerWidth - edge) dir = 1;
+      else if (touch.clientX <= edge) dir = -1;
+
+      if (dir !== scrollDirRef.current) {
+        scrollDirRef.current = dir;
+        if (dir !== 0 && scrollRafRef.current === undefined) {
+          scrollRafRef.current = requestAnimationFrame(doAutoScroll);
+        }
+      }
+    }
+  }, [setZoomSafe, doAutoScroll]);
 
   const handleTouchEnd = useCallback(() => {
     pinchRef.current = null;
+    scrollDirRef.current = 0;
+    if (scrollRafRef.current !== undefined) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = undefined;
+    }
   }, []);
+
+  const zoomAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = zoomAreaRef.current;
+    if (!el) return;
+    el.classList.remove('zoom-area--flash');
+    requestAnimationFrame(() => el.classList.add('zoom-area--flash'));
+    const t = setTimeout(() => el.classList.remove('zoom-area--flash'), 250);
+    return () => clearTimeout(t);
+  }, [zoomFlashKey]);
 
   useEffect(() => {
     const el = document.getElementById('main-content');
@@ -185,6 +231,7 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
+      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); toggleSelectionMode(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         if (undoStack.current) {
           setTasks(prev => [...prev, undoStack.current!]);
@@ -198,7 +245,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showToast, clearToast]);
+  }, [showToast, clearToast, selectionMode, toggleSelectionMode]);
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -262,16 +309,28 @@ function App() {
   }, []);
 
   const bulkMove = useCallback((to: ColumnId) => {
+    const count = selectedIds.size;
     selectedIds.forEach(id => moveTask(id, to));
     setSelectedIds(new Set());
     setSelectionMode(false);
-  }, [selectedIds, moveTask]);
+    const label = COLUMNS.find(c => c.id === to)?.label || to;
+    showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
+  }, [selectedIds, moveTask, showToast]);
 
   const bulkDelete = useCallback(() => {
+    const count = selectedIds.size;
     selectedIds.forEach(id => deleteTask(id));
     setSelectedIds(new Set());
     setSelectionMode(false);
-  }, [selectedIds, deleteTask]);
+    showToast(`Deleted ${count} task${count > 1 ? 's' : ''}.`);
+  }, [selectedIds, deleteTask, showToast]);
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(prev => {
+      if (prev.size === totalTasks) return new Set();
+      return new Set(tasks.map(t => t.id));
+    });
+  }, [tasks, totalTasks]);
 
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
@@ -307,23 +366,12 @@ function App() {
 
       <AddTaskForm onAdd={addTask} />
 
-      <div className="board-actions">
-        {COLUMNS.map(col => (
-          <button
-            key={col.id}
-            className="board-action-btn"
-            onClick={() => clearColumn(col.id)}
-            disabled={tasksByColumn[col.id].length === 0}
-            aria-label={`Clear ${col.label} column`}
-          >
-            Clear {col.label}
-          </button>
-        ))}
-      </div>
-
       {selectionMode && (
         <div className="bulk-bar">
           <span className="bulk-bar-count">{selectedIds.size} selected</span>
+          <button className="bulk-bar-btn bulk-bar-btn--select-all" onClick={selectAll}>
+            {selectedIds.size === totalTasks ? 'Deselect All' : 'Select All'}
+          </button>
           <div className="bulk-bar-actions">
             {COLUMNS.map(col => (
               <button key={col.id} className={`bulk-bar-btn bulk-bar-btn--${col.id}`} onClick={() => bulkMove(col.id)} disabled={selectedIds.size === 0}>
@@ -337,7 +385,7 @@ function App() {
         </div>
       )}
 
-      <div className="zoom-area" style={{ '--zoom': zoom } as React.CSSProperties}>
+      <div className="zoom-area" ref={zoomAreaRef} style={{ '--zoom': zoom } as React.CSSProperties}>
         <AnimatePresence mode="popLayout">
           <Board
             key="board"

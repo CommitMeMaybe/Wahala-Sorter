@@ -26,9 +26,11 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
   const [showMenu, setShowMenu] = useState(false);
+  const [longPressProgress, setLongPressProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const longPressTimer = useRef<number | undefined>(undefined);
   const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
+  const longPressInterval = useRef<number | undefined>(undefined);
 
   const idx = columns.indexOf(task.column);
   const rot = useMemo(() => `${(crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF - 0.5) * 1.5}deg`, []);
@@ -43,9 +45,14 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
   }, [editing]);
 
   const clearLongPress = useCallback(() => {
+    setLongPressProgress(0);
     if (longPressTimer.current !== undefined) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = undefined;
+    }
+    if (longPressInterval.current !== undefined) {
+      clearInterval(longPressInterval.current);
+      longPressInterval.current = undefined;
     }
     longPressStartPos.current = null;
   }, []);
@@ -54,14 +61,19 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
     if (isLifted) return;
     const touch = e.touches[0];
     longPressStartPos.current = { x: touch.clientX, y: touch.clientY };
-    longPressTimer.current = setTimeout(() => {
+    setLongPressProgress(0);
+    const step = 50;
+    longPressInterval.current = window.setInterval(() => {
+      setLongPressProgress(prev => Math.min(prev + step / 400, 1));
+    }, step);
+    longPressTimer.current = window.setTimeout(() => {
       if (onTouchDragStart) {
         onTouchDragStart(task.id);
         navigator.vibrate?.(10);
       }
-      longPressTimer.current = undefined;
+      clearLongPress();
     }, 400);
-  }, [task.id, onTouchDragStart, isLifted]);
+  }, [task.id, onTouchDragStart, isLifted, clearLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (longPressStartPos.current) {
@@ -89,6 +101,9 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       onDelete(task.id);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleDoubleClick();
     }
   };
 
@@ -190,6 +205,12 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
           </>
         )}
       </div>
+      {longPressProgress > 0 && longPressProgress < 1 && (
+        <div
+          className="task-longpress-progress"
+          style={{ '--progress': longPressProgress } as React.CSSProperties}
+        />
+      )}
       {!selectionMode && (
         <button
           className="task-delete"

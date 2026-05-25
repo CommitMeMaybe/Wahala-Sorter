@@ -50,11 +50,12 @@ export function Column({
 }: ColumnProps) {
   const isDragOver = dragOver === column.id;
 
+  const isEmpty = tasks.length === 0;
   const isTouchTarget = touchDragId !== null && tasks.some(t => t.id === touchDragId) === false;
 
   return (
     <div
-      className={`column column--${column.id}${isDragOver ? ' column--drag-over' : ''}${isTouchTarget ? ' column--drop-target' : ''}`}
+      className={`column column--${column.id}${isDragOver ? ' column--drag-over' : ''}${isTouchTarget ? ' column--drop-target' : ''}${isEmpty ? ' column--empty' : ''}`}
       role="list"
       aria-label={`${column.label} column with ${tasks.length} tasks`}
       onDragOver={e => onDragOver(e, column.id)}
@@ -96,7 +97,7 @@ export function Column({
       </div>
 
       {isTouchTarget && (
-        <div className="column-drop-hint" onClick={() => onTouchDrop(column.id)}>
+        <div className="column-drop-hint" onClick={(e) => { e.stopPropagation(); onTouchDrop(column.id); }}>
           <span>Drop here &darr;</span>
         </div>
       )}
