@@ -56,18 +56,16 @@ export function SortingScene() {
         )
       }
 
-      if (window.innerWidth > 700) {
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top 80%',
-          end: 'bottom top',
-          scrub: 1,
-          onUpdate: (self) => {
-            const blur = self.progress * 3
-            section.style.setProperty('--cinematic-blur', `${blur}px`)
-          },
-        })
-      }
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 0.3,
+        onUpdate: (self) => {
+          const blur = self.progress * 1.5
+          section.style.setProperty('--cinematic-blur', `${blur}px`)
+        },
+      })
     }, sectionRef)
 
     return () => ctx.revert()
