@@ -119,11 +119,18 @@ export function SortingScene() {
         Three columns. One rule: what matters now goes first. Everything else finds its place.
       </p>
 
-      <div ref={boardRef} className="w-full max-w-4xl grid grid-cols-3 gap-3 sm:gap-4 px-4 relative">
+      <div className="text-center md:hidden mb-4">
+        <span className="text-xs text-[#E8D5A8]/30 font-mono tracking-wider">
+          &larr; swipe to browse &rarr;
+        </span>
+      </div>
+
+      <div ref={boardRef} className="w-full max-w-4xl px-4 relative">
+        <div className="flex md:grid md:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory md:overflow-visible no-scrollbar pb-2 md:pb-0">
         {columns.map((col, ci) => (
           <div
             key={col.label}
-            className="evidence-col"
+            className="evidence-col shrink-0 w-[80vw] md:w-auto snap-start"
             style={{ transform: `rotate(${(ci - 1) * 0.5}deg)` }}
             role="region"
             aria-label={`${col.label} column`}
@@ -168,6 +175,7 @@ export function SortingScene() {
             </div>
           </div>
         ))}
+        </div>
 
         <HandAnimation />
       </div>

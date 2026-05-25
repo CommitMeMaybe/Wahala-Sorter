@@ -31,6 +31,7 @@ function App() {
     return saved ?? 5;
   });
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastKey = useRef(0);
@@ -176,6 +177,21 @@ function App() {
     handleDragEnd();
   }, [moveTask, handleDragEnd]);
 
+  const handleTouchDragStart = useCallback((id: string) => {
+    setTouchDragId(id);
+  }, []);
+
+  const handleTouchDrop = useCallback((col: ColumnId) => {
+    if (touchDragId) {
+      moveTask(touchDragId, col);
+      setTouchDragId(null);
+    }
+  }, [touchDragId, moveTask]);
+
+  const handleTouchDragCancel = useCallback(() => {
+    setTouchDragId(null);
+  }, []);
+
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
       <header className="header" role="banner">
@@ -224,6 +240,7 @@ function App() {
           columns={COLUMNS}
           now={now}
           dragOver={dragOver}
+          touchDragId={touchDragId}
           emptyMessages={EMPTY_MESSAGES}
           onDelete={deleteTask}
           onEdit={editTask}
@@ -233,6 +250,9 @@ function App() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onTouchDragStart={handleTouchDragStart}
+          onTouchDrop={handleTouchDrop}
+          onTouchDragCancel={handleTouchDragCancel}
         />
       </AnimatePresence>
 

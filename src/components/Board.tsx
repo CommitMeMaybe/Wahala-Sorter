@@ -6,6 +6,7 @@ interface BoardProps {
   columns: ColumnType[];
   now: number;
   dragOver: ColumnId | null;
+  touchDragId: string | null;
   emptyMessages: Record<ColumnId, string>;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
@@ -15,6 +16,9 @@ interface BoardProps {
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, col: ColumnId) => void;
+  onTouchDragStart: (id: string) => void;
+  onTouchDrop: (col: ColumnId) => void;
+  onTouchDragCancel: () => void;
 }
 
 export function Board({
@@ -22,6 +26,7 @@ export function Board({
   columns,
   now,
   dragOver,
+  touchDragId,
   emptyMessages,
   onDelete,
   onEdit,
@@ -31,11 +36,14 @@ export function Board({
   onDragOver,
   onDragLeave,
   onDrop,
+  onTouchDragStart,
+  onTouchDrop,
+  onTouchDragCancel,
 }: BoardProps) {
   const columnIds: ColumnId[] = columns.map(c => c.id);
 
   return (
-    <div className="board">
+    <div className={`board${touchDragId ? ' board--touch-dragging' : ''}`}>
       {columns.map(col => (
         <ColumnComponent
           key={col.id}
@@ -44,6 +52,7 @@ export function Board({
           now={now}
           columnIds={columnIds}
           dragOver={dragOver}
+          touchDragId={touchDragId}
           emptyMessage={emptyMessages[col.id]}
           onDelete={onDelete}
           onEdit={onEdit}
@@ -53,6 +62,9 @@ export function Board({
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
+          onTouchDragStart={onTouchDragStart}
+          onTouchDrop={onTouchDrop}
+          onTouchDragCancel={onTouchDragCancel}
         />
       ))}
     </div>

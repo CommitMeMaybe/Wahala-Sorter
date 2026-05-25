@@ -7,6 +7,7 @@ interface ColumnProps {
   now: number;
   columnIds: ColumnId[];
   dragOver: ColumnId | null;
+  touchDragId: string | null;
   emptyMessage: string;
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
@@ -16,6 +17,9 @@ interface ColumnProps {
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, col: ColumnId) => void;
+  onTouchDragStart: (id: string) => void;
+  onTouchDrop: (col: ColumnId) => void;
+  onTouchDragCancel: () => void;
 }
 
 export function Column({
@@ -24,6 +28,7 @@ export function Column({
   now,
   columnIds,
   dragOver,
+  touchDragId,
   emptyMessage,
   onDelete,
   onEdit,
@@ -33,17 +38,23 @@ export function Column({
   onDragOver,
   onDragLeave,
   onDrop,
+  onTouchDragStart,
+  onTouchDrop,
+  onTouchDragCancel,
 }: ColumnProps) {
   const isDragOver = dragOver === column.id;
 
+  const isTouchTarget = touchDragId !== null && tasks.some(t => t.id === touchDragId) === false;
+
   return (
     <div
-      className={`column column--${column.id}${isDragOver ? ' column--drag-over' : ''}`}
+      className={`column column--${column.id}${isDragOver ? ' column--drag-over' : ''}${isTouchTarget ? ' column--drop-target' : ''}`}
       role="list"
       aria-label={`${column.label} column with ${tasks.length} tasks`}
       onDragOver={e => onDragOver(e, column.id)}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, column.id)}
+      onClick={isTouchTarget ? () => onTouchDrop(column.id) : undefined}
     >
       <div className="column-header">
         <div className="column-title-row">
@@ -68,9 +79,18 @@ export function Column({
             onMove={onMove}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            touchDragId={touchDragId}
+            onTouchDragStart={onTouchDragStart}
+            onTouchDragCancel={onTouchDragCancel}
           />
         ))}
       </div>
+
+      {isTouchTarget && (
+        <div className="column-drop-hint" onClick={() => onTouchDrop(column.id)}>
+          <span>Drop here &darr;</span>
+        </div>
+      )}
     </div>
   );
 }

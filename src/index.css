@@ -230,6 +230,15 @@ body.app-mode {
   background-size: 3px 3px;
 }
 
+/* === Scrollbar Hide === */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* === Typography === */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);

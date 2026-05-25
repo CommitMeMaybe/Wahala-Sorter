@@ -123,7 +123,7 @@ export function ShowcaseScene() {
           <span className="text-[10px] text-[#F5E6C8]/20 tracking-widest uppercase font-mono">The Board</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {columns.map((col) => (
             <div key={col.label} className="bg-[#1A0F0A]/60 backdrop-blur-sm border border-[#F5E6C8]/10 p-4 min-h-[220px]">
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#F5E6C8]/10">
