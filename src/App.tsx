@@ -6,7 +6,7 @@ import { AddTaskForm } from './components/AddTaskForm';
 import { Board } from './components/Board';
 import { Toast, type ToastState } from './components/Toast';
 import { Footer } from './components/Footer';
-import { loadTasks, saveTasks, loadNextId, saveNextId } from './utils/storage';
+import { loadTasks, saveTasks, loadNextId, saveNextId, loadTrash, saveTrash } from './utils/storage';
 import './App.css';
 
 const COLUMNS = [
@@ -37,6 +37,8 @@ function App() {
   const [now, setNow] = useState(() => Date.now());
   const [zoom, setZoom] = useState(1);
   const [zoomFlashKey, setZoomFlashKey] = useState(0);
+  const [trashBin, setTrashBin] = useState<Task[]>(() => loadTrash());
+  const [showTrash, setShowTrash] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastKey = useRef(0);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -54,6 +56,10 @@ function App() {
   useEffect(() => {
     saveNextId(nextId);
   }, [nextId]);
+
+  useEffect(() => {
+    saveTrash(trashBin);
+  }, [trashBin]);
 
   const tasksByColumn = useMemo(() => ({
     now: tasks.filter(t => t.column === 'now'),
@@ -96,6 +102,7 @@ function App() {
     setTasks(prev => prev.filter(t => t.id !== id));
     if (task) {
       undoStack.current = task;
+      setTrashBin(prev => [task, ...prev]);
       if (!silent) {
         showToast('Task trashed.', {
           label: 'Undo',
@@ -103,6 +110,7 @@ function App() {
             if (undoStack.current) {
               setTasks(prev => [...prev, undoStack.current!]);
               setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
+              setTrashBin(prev => prev.filter(t => t.id !== undoStack.current!.id));
               undoStack.current = null;
               clearToast();
               showToast('Task restored.');
@@ -313,6 +321,19 @@ function App() {
     });
   }, [tasks, totalTasks]);
 
+  const restoreFromTrash = useCallback((task: Task) => {
+    setTasks(prev => [...prev, task]);
+    setNextId(prev => Math.max(prev, parseInt(task.id, 10) + 1));
+    setTrashBin(prev => prev.filter(t => t.id !== task.id));
+    showToast(`Restored "${task.title}".`);
+  }, [showToast]);
+
+  const clearTrash = useCallback(() => {
+    const count = trashBin.length;
+    setTrashBin([]);
+    showToast(`Emptied trash (${count} task${count > 1 ? 's' : ''}).`);
+  }, [trashBin, showToast]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
@@ -356,6 +377,15 @@ function App() {
             <span className="task-summary-count">{totalTasks}</span>
             <span className="task-summary-label">pinned</span>
           </span>
+          <button
+            className="trash-btn"
+            onClick={() => setShowTrash(true)}
+            disabled={trashBin.length === 0}
+            aria-label={`View trash (${trashBin.length} items)`}
+          >
+            <span aria-hidden="true">&#x1F5D1;</span>
+            {trashBin.length > 0 && <span className="trash-count">{trashBin.length}</span>}
+          </button>
           <button
             className="back-btn"
             onClick={() => { window.location.hash = '' }}
@@ -422,6 +452,34 @@ function App() {
       </div>
 
       <Footer />
+
+      {showTrash && trashBin.length > 0 && (
+        <div className="trash-overlay" onClick={() => setShowTrash(false)}>
+          <div className="trash-drawer" onClick={e => e.stopPropagation()}>
+            <div className="trash-header">
+              <h2 className="trash-title">Trash</h2>
+              <button className="trash-close" onClick={() => setShowTrash(false)} aria-label="Close trash">&times;</button>
+            </div>
+            <p className="trash-sub">{trashBin.length} deleted task{trashBin.length > 1 ? 's' : ''}</p>
+            <div className="trash-list">
+              {trashBin.map(task => (
+                <div key={task.id} className="trash-item">
+                  <div className="trash-item-content">
+                    <span className="trash-item-title">{task.title}</span>
+                    <span className="trash-item-meta">{task.column}</span>
+                  </div>
+                  <button className="trash-restore-btn" onClick={() => restoreFromTrash(task)}>
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className="trash-clear-btn" onClick={() => { clearTrash(); setShowTrash(false); }}>
+              Empty Trash
+            </button>
+          </div>
+        </div>
+      )}
 
       <Toast toast={toast} />
 

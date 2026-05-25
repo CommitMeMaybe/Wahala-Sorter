@@ -785,6 +785,212 @@
   80% { transform: rotate(-4deg); }
 }
 
+/* === Trash Bin === */
+.trash-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-height: 44px;
+  border: 1px solid rgba(245, 230, 200, 0.15);
+  background: rgba(26, 15, 10, 0.4);
+  color: var(--paper);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.trash-btn:hover:not(:disabled) {
+  background: rgba(245, 230, 200, 0.1);
+  border-color: rgba(245, 230, 200, 0.3);
+}
+
+.trash-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.trash-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--pin-red);
+  color: var(--paper);
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.trash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: trash-fadein 0.15s ease-out;
+}
+
+.trash-drawer {
+  width: 100%;
+  max-width: 480px;
+  max-height: 70vh;
+  background: #F5E6C8;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
+  animation: trash-slideup 0.25s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.trash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.trash-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2C1810;
+  margin: 0;
+}
+
+.trash-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(44, 24, 16, 0.06);
+  color: #2C1810;
+  font-size: 1.3rem;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.trash-sub {
+  font-size: 0.75rem;
+  color: rgba(44, 24, 16, 0.45);
+  margin: 0 0 12px;
+  font-family: var(--font-body);
+}
+
+.trash-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.trash-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(44, 24, 16, 0.04);
+  border: 1px solid rgba(44, 24, 16, 0.08);
+  border-radius: 8px;
+}
+
+.trash-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.trash-item-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #2C1810;
+  font-family: var(--font-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trash-item-meta {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(44, 24, 16, 0.4);
+  font-family: var(--font-body);
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+
+.trash-restore-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  min-height: 36px;
+  border: 1px solid rgba(44, 24, 16, 0.15);
+  background: rgba(44, 24, 16, 0.04);
+  color: #2C1810;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.trash-restore-btn:hover {
+  background: rgba(44, 24, 16, 0.1);
+  border-color: rgba(44, 24, 16, 0.25);
+}
+
+.trash-clear-btn {
+  width: 100%;
+  padding: 12px;
+  min-height: 44px;
+  border: 1.5px solid rgba(204, 51, 51, 0.2);
+  background: rgba(204, 51, 51, 0.04);
+  color: #CC3333;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.trash-clear-btn:hover {
+  background: rgba(204, 51, 51, 0.1);
+  border-color: rgba(204, 51, 51, 0.35);
+}
+
+@keyframes trash-slideup {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes trash-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* === Toast === */
 .toast {
   position: fixed;
