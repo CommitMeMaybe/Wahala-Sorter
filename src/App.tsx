@@ -91,23 +91,25 @@ function App() {
     showToast(`Pinned "${title}" to Now.`);
   }, [nextId, showToast]);
 
-  const deleteTask = useCallback((id: string) => {
+  const deleteTask = useCallback((id: string, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
     if (task) {
       undoStack.current = task;
-      showToast('Task trashed.', {
-        label: 'Undo',
-        onClick: () => {
-          if (undoStack.current) {
-            setTasks(prev => [...prev, undoStack.current!]);
-            setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
-            undoStack.current = null;
-            clearToast();
-            showToast('Task restored.');
-          }
-        },
-      });
+      if (!silent) {
+        showToast('Task trashed.', {
+          label: 'Undo',
+          onClick: () => {
+            if (undoStack.current) {
+              setTasks(prev => [...prev, undoStack.current!]);
+              setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
+              undoStack.current = null;
+              clearToast();
+              showToast('Task restored.');
+            }
+          },
+        });
+      }
     }
   }, [tasks, showToast, clearToast]);
 
@@ -116,11 +118,11 @@ function App() {
     showToast('Task updated.');
   }, [showToast]);
 
-  const moveTask = useCallback((id: string, to: ColumnId) => {
+  const moveTask = useCallback((id: string, to: ColumnId, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, column: to } : t));
     setDragOver(null);
-    if (task) {
+    if (task && !silent) {
       const label = COLUMNS.find(c => c.id === to)?.label || to;
       showToast(`Moved to ${label}.`);
     }
@@ -226,27 +228,6 @@ function App() {
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
-      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); toggleSelectionMode(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        if (undoStack.current) {
-          setTasks(prev => [...prev, undoStack.current!]);
-          setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
-          undoStack.current = null;
-          clearToast();
-          showToast('Undo — task restored.');
-          e.preventDefault();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showToast, clearToast, selectionMode, toggleSelectionMode]);
-
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
     e.dataTransfer.effectAllowed = 'move';
@@ -310,7 +291,7 @@ function App() {
 
   const bulkMove = useCallback((to: ColumnId) => {
     const count = selectedIds.size;
-    selectedIds.forEach(id => moveTask(id, to));
+    selectedIds.forEach(id => moveTask(id, to, true));
     setSelectedIds(new Set());
     setSelectionMode(false);
     const label = COLUMNS.find(c => c.id === to)?.label || to;
@@ -319,7 +300,7 @@ function App() {
 
   const bulkDelete = useCallback(() => {
     const count = selectedIds.size;
-    selectedIds.forEach(id => deleteTask(id));
+    selectedIds.forEach(id => deleteTask(id, true));
     setSelectedIds(new Set());
     setSelectionMode(false);
     showToast(`Deleted ${count} task${count > 1 ? 's' : ''}.`);
@@ -331,6 +312,27 @@ function App() {
       return new Set(tasks.map(t => t.id));
     });
   }, [tasks, totalTasks]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
+      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); toggleSelectionMode(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (undoStack.current) {
+          setTasks(prev => [...prev, undoStack.current!]);
+          setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
+          undoStack.current = null;
+          clearToast();
+          showToast('Undo — task restored.');
+          e.preventDefault();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showToast, clearToast, selectionMode, toggleSelectionMode]);
 
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
