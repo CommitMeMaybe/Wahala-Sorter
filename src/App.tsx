@@ -32,7 +32,6 @@ function App() {
   });
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
-  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
   const [zoom, setZoom] = useState(1);
@@ -68,6 +67,7 @@ function App() {
   }), [tasks]);
 
   const totalTasks = tasks.length;
+  const selectionMode = selectedIds.size > 0;
 
   const clearToast = useCallback(() => {
     clearTimeout(toastTimer.current);
@@ -289,7 +289,6 @@ function App() {
         const count = selectedIds.size;
         selectedIds.forEach(id => moveTask(id, col, true));
         setSelectedIds(new Set());
-        setSelectionMode(false);
         const label = COLUMNS.find(c => c.id === col)?.label || col;
         showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
       } else {
@@ -301,13 +300,6 @@ function App() {
 
   const handleTouchDragCancel = useCallback(() => {
     setTouchDragId(null);
-  }, []);
-
-  const toggleSelectionMode = useCallback(() => {
-    setSelectionMode(prev => {
-      if (prev) setSelectedIds(new Set());
-      return !prev;
-    });
   }, []);
 
   const toggleSelectId = useCallback((id: string) => {
@@ -322,7 +314,6 @@ function App() {
     const count = selectedIds.size;
     selectedIds.forEach(id => moveTask(id, to, true));
     setSelectedIds(new Set());
-    setSelectionMode(false);
     const label = COLUMNS.find(c => c.id === to)?.label || to;
     showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
   }, [selectedIds, moveTask, showToast]);
@@ -331,7 +322,6 @@ function App() {
     const count = selectedIds.size;
     selectedIds.forEach(id => deleteTask(id, true));
     setSelectedIds(new Set());
-    setSelectionMode(false);
     showToast(`Deleted ${count} task${count > 1 ? 's' : ''}.`);
   }, [selectedIds, deleteTask, showToast]);
 
@@ -360,7 +350,7 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
-      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); toggleSelectionMode(); return; }
+      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); setSelectedIds(new Set()); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         if (undoStack.current) {
           setTasks(prev => [...prev, undoStack.current!]);
@@ -374,7 +364,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showToast, clearToast, selectionMode, toggleSelectionMode]);
+  }, [showToast, clearToast, selectionMode]);
 
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
@@ -387,16 +377,12 @@ function App() {
           </div>
         </div>
         <div className="header-right">
-          <button
-            className={`select-btn${selectionMode ? ' select-btn--active' : ''}`}
-            onClick={toggleSelectionMode}
-            aria-label={selectionMode ? 'Cancel selection' : 'Select multiple tasks'}
-          >
-            {selectionMode ? 'Cancel' : 'Select'}
-          </button>
           <span className="task-summary" aria-label={`${totalTasks} total tasks`}>
+            <svg className="task-summary-icon" viewBox="0 0 16 16" fill="none" width="12" height="12" aria-hidden="true">
+              <path d="M10 2l4 4-2 2a4 4 0 01-1 3l-1 1-5-5 1-1a4 4 0 013-1l2-2z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 12l-2 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
             <span className="task-summary-count">{totalTasks}</span>
-            <span className="task-summary-label">pinned</span>
           </span>
           <button
             className="trash-btn"
@@ -412,7 +398,7 @@ function App() {
             onClick={() => { window.location.hash = '' }}
             aria-label="Return to home page"
           >
-            <span aria-hidden="true">&larr;</span> Home
+            <span aria-hidden="true">&larr;</span> <span className="back-btn-label">Home</span>
           </button>
         </div>
       </header>

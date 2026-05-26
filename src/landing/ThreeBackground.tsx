@@ -15,6 +15,7 @@ const EVIDENCE = [
 const PAPER_TONES = ['#F5E6C8', '#E8D5A8', '#F0E0C0', '#EDDFC5', '#F2E4C5']
 
 const RNG = () => (crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF)
+const IS_MOBILE = window.innerWidth <= 700
 
 function EvidenceCard({ position, color, index }: {
   position: [number, number, number]
@@ -103,7 +104,7 @@ export function ThreeBackground() {
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
       <Canvas
-        dpr={[1, 1.5]}
+        dpr={IS_MOBILE ? [0.8, 1.2] : [1, 1.5]}
         gl={{ antialias: true, alpha: false }}
         camera={{ position: [0, 0, 7], fov: 45 }}
       >

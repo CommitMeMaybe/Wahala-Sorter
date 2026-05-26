@@ -62,7 +62,8 @@ export function SortingScene() {
         end: 'bottom top',
         scrub: 0.3,
         onUpdate: (self) => {
-          const blur = self.progress * 1.5
+          const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
+          const blur = self.progress * maxBlur
           section.style.setProperty('--cinematic-blur', `${blur}px`)
         },
       })

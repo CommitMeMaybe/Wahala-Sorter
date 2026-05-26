@@ -31,6 +31,7 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
   const longPressTimer = useRef<number | undefined>(undefined);
   const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
   const longPressInterval = useRef<number | undefined>(undefined);
+  const longPressFired = useRef(false);
 
   const idx = columns.indexOf(task.column);
   const rot = useMemo(() => `${(crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF - 0.5) * 1.5}deg`, []);
@@ -68,13 +69,16 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
       setLongPressProgress(prev => Math.min(prev + step / 400, 1));
     }, step);
     longPressTimer.current = window.setTimeout(() => {
-      if (onTouchDragStart) {
-        onTouchDragStart(task.id);
+      longPressFired.current = true;
+      if (selectionMode) {
+        onTouchDragStart?.(task.id);
         navigator.vibrate?.(10);
+      } else {
+        onToggleSelect?.(task.id);
       }
       clearLongPress();
     }, 400);
-  }, [task.id, onTouchDragStart, isLifted, clearLongPress]);
+  }, [task.id, onTouchDragStart, onToggleSelect, selectionMode, isLifted, clearLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (longPressStartPos.current) {
@@ -87,8 +91,13 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
     }
   }, [clearLongPress]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const fired = longPressFired.current;
     clearLongPress();
+    if (fired) {
+      e.preventDefault();
+    }
+    longPressFired.current = false;
   }, [clearLongPress]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -174,7 +183,7 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
       onDragEnd={onDragEnd}
       onKeyDown={handleKeyDown}
       onDoubleClick={selectionMode ? undefined : handleDoubleClick}
-      onClick={selectionMode ? () => onToggleSelect?.(task.id) : handleTap}
+      onClick={selectionMode ? (() => { if (!isLifted) onToggleSelect?.(task.id); }) : handleTap}
       onTouchStart={(!selectionMode || selected) ? handleTouchStart : undefined}
       onTouchMove={(!selectionMode || selected) ? handleTouchMove : undefined}
       onTouchEnd={(!selectionMode || selected) ? handleTouchEnd : undefined}
