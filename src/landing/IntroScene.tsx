@@ -59,7 +59,7 @@ export function IntroScene() {
         trigger: section,
         start: 'top bottom',
         end: 'bottom top',
-        scrub: 0.3,
+        scrub: 1.2,
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
