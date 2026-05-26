@@ -136,13 +136,6 @@ function App() {
     }
   }, [tasks, showToast]);
 
-  const clearColumn = useCallback((col: ColumnId) => {
-    const count = tasksByColumn[col].length;
-    if (count === 0) return;
-    setTasks(prev => prev.filter(t => t.column !== col));
-    showToast(`Cleared ${count} task${count > 1 ? 's' : ''} from ${COLUMNS.find(c => c.id === col)?.label}.`);
-  }, [tasksByColumn, showToast]);
-
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
