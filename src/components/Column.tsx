@@ -14,6 +14,7 @@ interface ColumnProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
   onMove: (id: string, to: ColumnId) => void;
+  onClearColumn: (colId: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
@@ -38,6 +39,7 @@ export function Column({
   onDelete,
   onEdit,
   onMove,
+  onClearColumn,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -67,6 +69,16 @@ export function Column({
         <div className="column-title-row">
           <h2 className="column-title">{column.label}</h2>
           <span className="column-count" aria-label={`${tasks.length} tasks`}>{tasks.length}</span>
+          <button
+            className="column-clear-btn"
+            onClick={() => onClearColumn(column.id)}
+            disabled={tasks.length === 0}
+            aria-label={`Clear ${column.label}`}
+          >
+            <svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+              <path d="M2 4h12M5 4V2.5a1 1 0 011-1h4a1 1 0 011 1V4M6 7v5M10 7v5M3 4l1 10a1 1 0 001 1h6a1 1 0 001-1l1-10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
         <p className="column-desc">{column.description}</p>
       </div>

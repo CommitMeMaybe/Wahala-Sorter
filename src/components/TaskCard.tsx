@@ -36,6 +36,7 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
   const rot = useMemo(() => `${(crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF - 0.5) * 1.5}deg`, []);
 
   const isLifted = touchDragId === task.id;
+  const isStacked = touchDragId !== null && touchDragId !== task.id && selected;
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -164,7 +165,7 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
 
   return (
     <div
-      className={`task${isLifted ? ' task--lifted' : ''}${selectionMode ? ' task--selectable' : ''}${selected ? ' task--selected' : ''}`}
+      className={`task${isLifted ? ' task--lifted' : ''}${selectionMode ? ' task--selectable' : ''}${selected ? ' task--selected' : ''}${isStacked ? ' task--stacked' : ''}`}
       draggable={!selectionMode}
       tabIndex={0}
       role="listitem"
@@ -174,9 +175,9 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
       onKeyDown={handleKeyDown}
       onDoubleClick={selectionMode ? undefined : handleDoubleClick}
       onClick={selectionMode ? () => onToggleSelect?.(task.id) : handleTap}
-      onTouchStart={selectionMode ? undefined : handleTouchStart}
-      onTouchMove={selectionMode ? undefined : handleTouchMove}
-      onTouchEnd={selectionMode ? undefined : handleTouchEnd}
+      onTouchStart={(!selectionMode || selected) ? handleTouchStart : undefined}
+      onTouchMove={(!selectionMode || selected) ? handleTouchMove : undefined}
+      onTouchEnd={(!selectionMode || selected) ? handleTouchEnd : undefined}
       aria-label={`Task: ${task.title}. In ${task.column} column. Press left or right arrow to move, Enter to edit.${selectionMode ? ' Tap to select.' : ''}`}
     >
       {selectionMode && (
@@ -212,13 +213,25 @@ export function TaskCard({ task, now, columns, onDelete, onEdit, onMove, onDragS
         />
       )}
       {!selectionMode && (
-        <button
-          className="task-delete"
-          onClick={handleDelete}
-          aria-label={`Delete "${task.title}"`}
-        >
-          &times;
-        </button>
+        <div className="task-actions">
+          <button
+            className="task-edit-btn"
+            onClick={handleDoubleClick}
+            aria-label={`Edit "${task.title}"`}
+          >
+            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+              <path d="M11.5 1.5l3 3L5 14H2v-3l9.5-9.5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 4l3 3" stroke="currentColor" strokeWidth="1.4"/>
+            </svg>
+          </button>
+          <button
+            className="task-delete"
+            onClick={handleDelete}
+            aria-label={`Delete "${task.title}"`}
+          >
+            &times;
+          </button>
+        </div>
       )}
 
       {showMenu && createPortal(

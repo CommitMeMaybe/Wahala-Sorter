@@ -13,6 +13,7 @@ interface BoardProps {
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
   onMove: (id: string, to: ColumnId) => void;
+  onClearColumn: (colId: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent, col: ColumnId) => void;
@@ -36,6 +37,7 @@ export function Board({
   onDelete,
   onEdit,
   onMove,
+  onClearColumn,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -51,30 +53,31 @@ export function Board({
   return (
     <div className={`board${touchDragId ? ' board--touch-dragging' : ''}`}>
       {columns.map(col => (
-        <ColumnComponent
-          key={col.id}
-          column={col}
-          tasks={tasksByColumn[col.id]}
-          now={now}
-          columnIds={columnIds}
-          dragOver={dragOver}
-          touchDragId={touchDragId}
-          selectionMode={selectionMode}
-          selectedIds={selectedIds}
-          emptyMessage={emptyMessages[col.id]}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onMove={onMove}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onTouchDragStart={onTouchDragStart}
-          onTouchDrop={onTouchDrop}
-          onTouchDragCancel={onTouchDragCancel}
-          onToggleSelect={onToggleSelect}
-        />
+          <ColumnComponent
+            key={col.id}
+            column={col}
+            tasks={tasksByColumn[col.id]}
+            now={now}
+            columnIds={columnIds}
+            dragOver={dragOver}
+            touchDragId={touchDragId}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            emptyMessage={emptyMessages[col.id]}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onMove={onMove}
+            onClearColumn={onClearColumn}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onTouchDragStart={onTouchDragStart}
+            onTouchDrop={onTouchDrop}
+            onTouchDragCancel={onTouchDragCancel}
+            onToggleSelect={onToggleSelect}
+          />
       ))}
     </div>
   );

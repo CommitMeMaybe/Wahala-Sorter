@@ -136,6 +136,25 @@ function App() {
     }
   }, [tasks, showToast]);
 
+  const clearColumn = useCallback((colId: ColumnId) => {
+    const toRemove = tasks.filter(t => t.column === colId);
+    toRemove.forEach(t => {
+      undoStack.current = t;
+      setTrashBin(prev => [t, ...prev]);
+    });
+    setTasks(prev => prev.filter(t => t.column !== colId));
+    const label = COLUMNS.find(c => c.id === colId)?.label || colId;
+    showToast(`Cleared ${label}.`, {
+      label: 'Undo',
+      onClick: () => {
+        setTasks(prev => [...prev, ...toRemove]);
+        setTrashBin(prev => prev.filter(t => !toRemove.find(r => r.id === t.id)));
+        clearToast();
+        showToast('Undo — column restored.');
+      },
+    });
+  }, [tasks, showToast, clearToast]);
+
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
@@ -162,7 +181,7 @@ function App() {
 
   const zoomIn = useCallback(() => setZoomSafe(zoomRef.current + 0.15), [setZoomSafe]);
   const zoomOut = useCallback(() => setZoomSafe(zoomRef.current - 0.15), [setZoomSafe]);
-  const zoomReset = useCallback(() => setZoom(1), []);
+  const zoomReset = useCallback(() => setZoomSafe(1), [setZoomSafe]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length === 2) {
@@ -266,10 +285,19 @@ function App() {
 
   const handleTouchDrop = useCallback((col: ColumnId) => {
     if (touchDragId) {
-      moveTask(touchDragId, col);
+      if (selectedIds.has(touchDragId)) {
+        const count = selectedIds.size;
+        selectedIds.forEach(id => moveTask(id, col, true));
+        setSelectedIds(new Set());
+        setSelectionMode(false);
+        const label = COLUMNS.find(c => c.id === col)?.label || col;
+        showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
+      } else {
+        moveTask(touchDragId, col);
+      }
       setTouchDragId(null);
     }
-  }, [touchDragId, moveTask]);
+  }, [touchDragId, moveTask, selectedIds, showToast]);
 
   const handleTouchDragCancel = useCallback(() => {
     setTouchDragId(null);
@@ -425,6 +453,7 @@ function App() {
             onDelete={deleteTask}
             onEdit={editTask}
             onMove={moveTask}
+            onClearColumn={clearColumn}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDragOver={handleDragOver}
