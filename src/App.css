@@ -257,9 +257,9 @@
   margin: 0;
 }
 
-.column--now .column-title { color: #FF6B6B; }
-.column--soon .column-title { color: #6BA3D6; }
-.column--later .column-title { color: #B8957A; }
+.column--now .column-title { color: #FFADAD; }
+.column--soon .column-title { color: #B0D0F0; }
+.column--later .column-title { color: #D0C0B0; }
 
 .column-count {
   font-size: 0.6rem;
