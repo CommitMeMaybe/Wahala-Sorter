@@ -103,16 +103,16 @@ export function ShowcaseScene() {
         className="text-3xl sm:text-5xl md:text-6xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        A board that breathes.
+        Everything has a peg.
         <br />
-        <span className="text-[#E8D5A8]/60">Three slots. Your whole day.</span>
+        <span className="text-[#E8D5A8]/60">Everything has a place.</span>
       </h2>
 
       <p
         ref={bodyRef}
         className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-12"
       >
-        Now. Soon. Later. Not complicated. Just clear. Pin what matters, leave the rest.
+        Now. Soon. Later. Three slots, no guilt, nothing lost in the pile. Pin it where it belongs and watch the noise settle.
       </p>
 
       <div ref={boardRef} className="w-full max-w-4xl board-frame p-4 sm:p-6">

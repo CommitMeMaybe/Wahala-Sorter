@@ -84,14 +84,14 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
         >
           Stop holding it all.
           <br />
-          <span className="italic text-[#E8D5A8]/70">Start pinning it down.</span>
+          <span className="italic text-[#E8D5A8]/70">Your skull is not a corkboard.</span>
         </h2>
 
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-md mx-auto leading-relaxed"
         >
-          Your mind is not a board. Stop using it like one. Pin the noise. Find the signal.
+          Your brain is already full. That's what the board is for. Pin the noise. Find the signal.
         </p>
 
         <button
@@ -105,7 +105,7 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
       </div>
 
       <p className="absolute bottom-8 text-[10px] text-[#E8D5A8]/10 tracking-widest uppercase font-mono">
-        Pinned for the builders of Lagos
+        Built for the builders of Lagos. One pin at a time.
       </p>
     </section>
   )

@@ -1,101 +1,112 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { Task, ColumnId } from './types';
-import { INITIAL_TASKS } from './data/seed';
-import { AddTaskForm } from './components/AddTaskForm';
+import type { AppSettings } from './types';
+import { INITIAL_TASKS, INITIAL_PROJECTS } from './data/seed';
 import { Board } from './components/Board';
 import { Toast, type ToastState } from './components/Toast';
-import { Footer } from './components/Footer';
-import { loadTasks, saveTasks, loadNextId, saveNextId, loadTrash, saveTrash } from './utils/storage';
+import { SearchBar } from './components/SearchBar';
+import { FilterChips } from './components/FilterChips';
+import { AddTaskModal } from './components/AddTaskModal';
+import { AppDrawer } from './components/AppDrawer';
+import { SettingsDrawer } from './components/SettingsDrawer';
+import { OnboardingOverlay } from './components/OnboardingOverlay';
+import { WeekSummaryCard } from './components/WeekSummary';
+import { Confetti } from './components/Confetti';
+import { loadTasks, saveTasks, loadTrash, saveTrash, loadProjects, saveProjects, loadSettings, saveSettings } from './utils/storage';
+import { nextOccurrence } from './utils/recurrence';
 import './App.css';
 
-const COLUMNS = [
-  { id: 'now' as ColumnId, label: 'Now', description: 'Right now, no delay' },
-  { id: 'soon' as ColumnId, label: 'Soon', description: 'Today or tomorrow' },
-  { id: 'later' as ColumnId, label: 'Later', description: 'This week, insha Allah' },
-];
+const COLUMNS: ColumnId[] = ['now', 'soon', 'later'];
 
 const EMPTY_MESSAGES: Record<ColumnId, string> = {
-  now: 'Nothing urgent. Enjoy it while it lasts.',
-  soon: 'Nothing pending. The calm before the storm.',
-  later: 'Nothing on the back burner. Suspicious.',
+  now: 'Clear desk. Breathe while it lasts.',
+  soon: 'Nothing queued. Suspiciously quiet.',
+  later: 'Nothing deferred. Are you sure?',
 };
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = loadTasks();
-    return saved ?? INITIAL_TASKS;
+  const [tasks, setTasks] = useState<Task[]>(() => loadTasks() ?? INITIAL_TASKS);
+  const [trashBin, setTrashBin] = useState<Task[]>(() => loadTrash());
+  const [projects, setProjects] = useState(() => {
+    const saved = loadProjects();
+    return saved.length ? saved : INITIAL_PROJECTS;
   });
-  const [nextId, setNextId] = useState(() => {
-    const saved = loadNextId();
-    return saved ?? 5;
-  });
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+  const [showTrash, setShowTrash] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
   const [zoom, setZoom] = useState(1);
   const [zoomFlashKey, setZoomFlashKey] = useState(0);
-  const [trashBin, setTrashBin] = useState<Task[]>(() => loadTrash());
-  const [showTrash, setShowTrash] = useState(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
   const toastKey = useRef(0);
   const toastTimer = useRef<number | undefined>(undefined);
   const undoStack = useRef<Task | null>(null);
 
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  const [search, setSearch] = useState('');
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(!settings.onboardingDone);
+  const [confettiKey, setConfettiKey] = useState(0);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(id); }, []);
+  useEffect(() => { saveTasks(tasks); }, [tasks]);
+  useEffect(() => { saveTrash(trashBin); }, [trashBin]);
+  useEffect(() => { saveProjects(projects); }, [projects]);
+  useEffect(() => { saveSettings(settings); }, [settings]);
 
-  useEffect(() => {
-    saveNextId(nextId);
-  }, [nextId]);
-
-  useEffect(() => {
-    saveTrash(trashBin);
-  }, [trashBin]);
-
-  const tasksByColumn = useMemo(() => ({
-    now: tasks.filter(t => t.column === 'now'),
-    soon: tasks.filter(t => t.column === 'soon'),
-    later: tasks.filter(t => t.column === 'later'),
-  }), [tasks]);
+  const tasksByColumn = useMemo(() => {
+    const filtered = tasks.filter(t => {
+      if (t.completedAt && !showCompleted) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!t.title.toLowerCase().includes(q) && !t.tags.some(tag => tag.includes(q))) return false;
+      }
+      if (projectFilter && t.projectId !== projectFilter) return false;
+      return true;
+    });
+    return {
+      now: filtered.filter(t => t.column === 'now'),
+      soon: filtered.filter(t => t.column === 'soon'),
+      later: filtered.filter(t => t.column === 'later'),
+    };
+  }, [tasks, search, projectFilter, showCompleted]);
 
   const totalTasks = tasks.length;
   const selectionMode = selectedIds.size > 0;
 
-  const clearToast = useCallback(() => {
-    clearTimeout(toastTimer.current);
-    setToast(null);
-  }, []);
-
+  const clearToast = useCallback(() => { clearTimeout(toastTimer.current); setToast(null); }, []);
   const showToast = useCallback((message: string, action?: { label: string; onClick: () => void }) => {
     clearTimeout(toastTimer.current);
     toastKey.current += 1;
     setToast({ message, action, key: toastKey.current });
-    toastTimer.current = setTimeout(() => {
+    toastTimer.current = window.setTimeout(() => {
       setToast(prev => prev && prev.key === toastKey.current ? { ...prev, closing: true } : prev);
-      setTimeout(() => {
-        setToast(prev => prev && prev.key === toastKey.current ? null : prev);
-      }, 300);
+      setTimeout(() => setToast(prev => prev && prev.key === toastKey.current ? null : prev), 300);
     }, 5000);
   }, []);
 
-  const addTask = useCallback((title: string) => {
+  const applyRecurrence = useCallback((task: Task) => {
+    const next = nextOccurrence(task);
+    if (next) setTasks(prev => [...prev, next]);
+  }, []);
+
+  const addTask = useCallback((title: string, projectId?: string, column?: ColumnId) => {
+    const col = column || 'now';
+    const maxOrder = tasks.filter(t => t.column === col).length;
     setTasks(prev => [...prev, {
-      id: String(nextId),
-      title,
-      column: 'now' as ColumnId,
-      createdAt: Date.now(),
+      id: crypto.randomUUID(), title, column: col, createdAt: Date.now(),
+      recurrence: 'none', subtasks: [], tags: [], sortOrder: maxOrder, notes: '',
+      projectId,
     }]);
-    setNextId(prev => prev + 1);
-    showToast(`Pinned "${title}" to Now.`);
-  }, [nextId, showToast]);
+    showToast(`Pinned "${title}" to ${settings.columnLabels[col]}.`);
+  }, [tasks, showToast, settings.columnLabels]);
 
   const deleteTask = useCallback((id: string, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
@@ -103,57 +114,60 @@ function App() {
     if (task) {
       undoStack.current = task;
       setTrashBin(prev => [task, ...prev]);
-      if (!silent) {
-        showToast('Task trashed.', {
-          label: 'Undo',
-          onClick: () => {
-            if (undoStack.current) {
-              setTasks(prev => [...prev, undoStack.current!]);
-              setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
-              setTrashBin(prev => prev.filter(t => t.id !== undoStack.current!.id));
-              undoStack.current = null;
-              clearToast();
-              showToast('Task restored.');
-            }
-          },
-        });
-      }
+      if (!silent) showToast('Gone. To the archive.', {
+        label: 'Undo',
+        onClick: () => {
+          if (undoStack.current) {
+            setTasks(prev => [...prev, undoStack.current!]);
+            setTrashBin(prev => prev.filter(t => t.id !== undoStack.current!.id));
+            undoStack.current = null;
+            clearToast();
+            showToast('Back from the dead.');
+          }
+        },
+      });
     }
   }, [tasks, showToast, clearToast]);
 
   const editTask = useCallback((id: string, title: string) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
-    showToast('Task updated.');
+    showToast('Title updated.');
   }, [showToast]);
+
+  const updateTask = useCallback((id: string, patch: Partial<Task>) => {
+    setTasks(prev => {
+      const next = prev.map(t => t.id === id ? { ...t, ...patch } : t);
+      const task = next.find(t => t.id === id);
+      if (task && patch.completedAt) {
+        applyRecurrence(task);
+        if (settings.confettiEnabled) setConfettiKey(k => k + 1);
+        showToast('Done!');
+      }
+      return next;
+    });
+  }, [applyRecurrence, settings.confettiEnabled, showToast]);
 
   const moveTask = useCallback((id: string, to: ColumnId, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, column: to } : t));
     setDragOver(null);
-    if (task && !silent) {
-      const label = COLUMNS.find(c => c.id === to)?.label || to;
-      showToast(`Moved to ${label}.`);
-    }
-  }, [tasks, showToast]);
+    if (task && !silent) showToast(`Slotted into ${settings.columnLabels[to]}.`);
+  }, [tasks, showToast, settings.columnLabels]);
 
   const clearColumn = useCallback((colId: ColumnId) => {
     const toRemove = tasks.filter(t => t.column === colId);
-    toRemove.forEach(t => {
-      undoStack.current = t;
-      setTrashBin(prev => [t, ...prev]);
-    });
+    toRemove.forEach(t => { undoStack.current = t; setTrashBin(prev => [t, ...prev]); });
     setTasks(prev => prev.filter(t => t.column !== colId));
-    const label = COLUMNS.find(c => c.id === colId)?.label || colId;
-    showToast(`Cleared ${label}.`, {
+    showToast(`Wiped ${settings.columnLabels[colId]}.`, {
       label: 'Undo',
       onClick: () => {
         setTasks(prev => [...prev, ...toRemove]);
         setTrashBin(prev => prev.filter(t => !toRemove.find(r => r.id === t.id)));
         clearToast();
-        showToast('Undo — column restored.');
+        showToast('Column revived.');
       },
     });
-  }, [tasks, showToast, clearToast]);
+  }, [tasks, showToast, clearToast, settings.columnLabels]);
 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -165,17 +179,13 @@ function App() {
 
   const doAutoScroll = useCallback(() => {
     const board = document.querySelector('.board') as HTMLElement | null;
-    if (!board || scrollDirRef.current === 0) {
-      scrollRafRef.current = undefined;
-      return;
-    }
+    if (!board || scrollDirRef.current === 0) { scrollRafRef.current = undefined; return; }
     board.scrollLeft += scrollDirRef.current * 8;
     scrollRafRef.current = requestAnimationFrame(doAutoScroll);
   }, []);
 
   const setZoomSafe = useCallback((v: number) => {
-    const clamped = Math.max(0.4, Math.min(1.45, +v.toFixed(2)));
-    setZoom(clamped);
+    setZoom(Math.max(0.4, Math.min(1.45, +v.toFixed(2))));
     setZoomFlashKey(k => k + 1);
   }, []);
 
@@ -190,40 +200,31 @@ function App() {
       pinchRef.current = { dist: Math.hypot(dx, dy), zoom: zoomRef.current };
     }
   }, []);
-
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (e.touches.length === 2 && pinchRef.current) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const newDist = Math.hypot(dx, dy);
-      const scale = newDist / pinchRef.current.dist;
-      setZoomSafe(pinchRef.current.zoom * scale);
+      setZoomSafe(pinchRef.current.zoom * (Math.hypot(dx, dy) / pinchRef.current.dist));
     }
-
     if (e.touches.length === 1 && touchDragIdRef.current) {
       const touch = e.touches[0];
-      const edge = 40;
       let dir = 0;
-      if (touch.clientX >= window.innerWidth - edge) dir = 1;
-      else if (touch.clientX <= edge) dir = -1;
-
+      if (touch.clientX >= window.innerWidth - 40) dir = 1;
+      else if (touch.clientX <= 40) dir = -1;
       if (dir !== scrollDirRef.current) {
         scrollDirRef.current = dir;
-        if (dir !== 0 && scrollRafRef.current === undefined) {
-          scrollRafRef.current = requestAnimationFrame(doAutoScroll);
-        }
+        if (dir !== 0 && scrollRafRef.current === undefined) scrollRafRef.current = requestAnimationFrame(doAutoScroll);
       }
     }
   }, [setZoomSafe, doAutoScroll]);
-
   const handleTouchEnd = useCallback(() => {
     pinchRef.current = null;
     scrollDirRef.current = 0;
-    if (scrollRafRef.current !== undefined) {
-      cancelAnimationFrame(scrollRafRef.current);
-      scrollRafRef.current = undefined;
-    }
+    if (scrollRafRef.current !== undefined) { cancelAnimationFrame(scrollRafRef.current); scrollRafRef.current = undefined; }
   }, []);
+  const handleWheel = useCallback((e: WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoomSafe(zoomRef.current - e.deltaY * 0.002); }
+  }, [setZoomSafe]);
 
   const zoomAreaRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -236,17 +237,14 @@ function App() {
   }, [zoomFlashKey]);
 
   useEffect(() => {
-    const el = document.getElementById('main-content');
+    const el = zoomAreaRef.current;
     if (!el) return;
     el.addEventListener('touchstart', handleTouchStart, { passive: true });
     el.addEventListener('touchmove', handleTouchMove, { passive: true });
     el.addEventListener('touchend', handleTouchEnd);
-    return () => {
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-      el.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => { el.removeEventListener('touchstart', handleTouchStart); el.removeEventListener('touchmove', handleTouchMove); el.removeEventListener('touchend', handleTouchEnd); el.removeEventListener('wheel', handleWheel); };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleWheel]);
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -256,202 +254,174 @@ function App() {
     e.dataTransfer.setDragImage(el, rect.width / 2, rect.height / 2);
     el.classList.add('task--dragging');
   }, []);
-
-  const handleDragEnd = useCallback(() => {
-    setDragOver(null);
-    document.querySelectorAll('.task--dragging').forEach(el => el.classList.remove('task--dragging'));
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, col: ColumnId) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOver(col);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setDragOver(null);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent, col: ColumnId) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
-    if (id) moveTask(id, col);
-    handleDragEnd();
-  }, [moveTask, handleDragEnd]);
-
-  const handleTouchDragStart = useCallback((id: string) => {
-    setTouchDragId(id);
-  }, []);
-
+  const handleDragEnd = useCallback(() => { setDragOver(null); document.querySelectorAll('.task--dragging').forEach(el => el.classList.remove('task--dragging')); }, []);
+  const handleDragOver = useCallback((e: React.DragEvent, col: ColumnId) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOver(col); }, []);
+  const handleDragLeave = useCallback(() => setDragOver(null), []);
+  const handleDrop = useCallback((e: React.DragEvent, col: ColumnId) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) moveTask(id, col); handleDragEnd(); }, [moveTask, handleDragEnd]);
+  const handleTouchDragStart = useCallback((id: string) => setTouchDragId(id), []);
   const handleTouchDrop = useCallback((col: ColumnId) => {
     if (touchDragId) {
       if (selectedIds.has(touchDragId)) {
         const count = selectedIds.size;
         selectedIds.forEach(id => moveTask(id, col, true));
         setSelectedIds(new Set());
-        const label = COLUMNS.find(c => c.id === col)?.label || col;
-        showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
-      } else {
-        moveTask(touchDragId, col);
-      }
+        showToast(`${count} task${count > 1 ? 's' : ''} moved to ${settings.columnLabels[col]}.`);
+      } else moveTask(touchDragId, col);
       setTouchDragId(null);
     }
-  }, [touchDragId, moveTask, selectedIds, showToast]);
-
-  const handleTouchDragCancel = useCallback(() => {
-    setTouchDragId(null);
-  }, []);
-
-  const toggleSelectId = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
-
+  }, [touchDragId, moveTask, selectedIds, showToast, settings.columnLabels]);
+  const handleTouchDragCancel = useCallback(() => setTouchDragId(null), []);
+  const toggleSelectId = useCallback((id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }), []);
   const bulkMove = useCallback((to: ColumnId) => {
     const count = selectedIds.size;
     selectedIds.forEach(id => moveTask(id, to, true));
     setSelectedIds(new Set());
-    const label = COLUMNS.find(c => c.id === to)?.label || to;
-    showToast(`Moved ${count} task${count > 1 ? 's' : ''} to ${label}.`);
-  }, [selectedIds, moveTask, showToast]);
-
+    showToast(`${count} task${count > 1 ? 's' : ''} moved to ${settings.columnLabels[to]}.`);
+  }, [selectedIds, moveTask, showToast, settings.columnLabels]);
   const bulkDelete = useCallback(() => {
     const count = selectedIds.size;
     selectedIds.forEach(id => deleteTask(id, true));
     setSelectedIds(new Set());
-    showToast(`Deleted ${count} task${count > 1 ? 's' : ''}.`);
+    showToast(`${count} task${count > 1 ? 's' : ''} gone.`);
   }, [selectedIds, deleteTask, showToast]);
-
-  const selectAll = useCallback(() => {
-    setSelectedIds(prev => {
-      if (prev.size === totalTasks) return new Set();
-      return new Set(tasks.map(t => t.id));
-    });
-  }, [tasks, totalTasks]);
+  const selectAll = useCallback(() => setSelectedIds(prev => prev.size === totalTasks ? new Set() : new Set(tasks.map(t => t.id))), [tasks, totalTasks]);
 
   const restoreFromTrash = useCallback((task: Task) => {
     setTasks(prev => [...prev, task]);
-    setNextId(prev => Math.max(prev, parseInt(task.id, 10) + 1));
     setTrashBin(prev => prev.filter(t => t.id !== task.id));
-    showToast(`Restored "${task.title}".`);
+    showToast(`"${task.title}" climbed back out.`);
   }, [showToast]);
-
   const clearTrash = useCallback(() => {
     const count = trashBin.length;
     setTrashBin([]);
-    showToast(`Emptied trash (${count} task${count > 1 ? 's' : ''}).`);
+    showToast(`Trash emptied (${count} task${count > 1 ? 's' : ''} gone).`);
   }, [trashBin, showToast]);
 
+  const updateSettings = useCallback((s: AppSettings) => setSettings(s), []);
+  const addProject = useCallback(() => {
+    const id = crypto.randomUUID();
+    setProjects(prev => [...prev, { id, name: 'New Project', color: ['#CC3333', '#3A6B9F', '#6B4F3A', '#4A7A4A', '#8B5CF6'][prev.length % 5], sortOrder: prev.length }]);
+  }, []);
+  const removeProject = useCallback((id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+    setTasks(prev => prev.map(t => t.projectId === id ? { ...t, projectId: undefined } : t));
+  }, []);
+  const renameProject = useCallback((id: string, name: string) => setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p)), []);
+  const finishOnboarding = useCallback(() => { setShowOnboarding(false); setSettings(s => ({ ...s, onboardingDone: true })); }, [setSettings]);
+
+  const getWeekStartStr = (d: Date) => {
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().slice(0, 10);
+  };
+  const computeWeekStats = (tasksList: Task[]) => {
+    const map = new Map<string, { completed: number; added: number }>();
+    for (const t of tasksList) {
+      if (t.completedAt) { const w = getWeekStartStr(new Date(t.completedAt)); const e = map.get(w) || { completed: 0, added: 0 }; e.completed++; map.set(w, e); }
+      const w = getWeekStartStr(new Date(t.createdAt)); const e = map.get(w) || { completed: 0, added: 0 }; e.added++; map.set(w, e);
+    }
+    return Array.from(map.entries()).map(([ws, v]) => ({ weekStart: ws, ...v, streaks: 0 })).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  };
+  const weekStats = useMemo(() => computeWeekStats(tasks), [tasks]);
+  const currentWeek = weekStats.length > 0 ? weekStats[weekStats.length - 1] : null;
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const hk = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === '=') { e.preventDefault(); zoomIn(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomOut(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); zoomReset(); return; }
-      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); setSelectedIds(new Set()); return; }
+      if (e.key === 'Escape') {
+        if (selectionMode) { setSelectedIds(new Set()); return; }
+        if (showSettings) { setShowSettings(false); return; }
+        if (showAddModal) { setShowAddModal(false); return; }
+        if (showDrawer) { setShowDrawer(false); return; }
+        if (showMobileSearch) { setShowMobileSearch(false); return; }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         if (undoStack.current) {
           setTasks(prev => [...prev, undoStack.current!]);
-          setNextId(prev => Math.max(prev, parseInt(undoStack.current!.id, 10) + 1));
+          setTrashBin(prev => prev.filter(t => t.id !== undoStack.current!.id));
           undoStack.current = null;
           clearToast();
-          showToast('Undo — task restored.');
+          showToast('Pulled back from the void.');
           e.preventDefault();
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showToast, clearToast, selectionMode]);
+    window.addEventListener('keydown', hk);
+    return () => window.removeEventListener('keydown', hk);
+  }, [showToast, clearToast, selectionMode, zoomIn, zoomOut, zoomReset, showSettings, showAddModal, showDrawer, showMobileSearch]);
 
   return (
     <div className="app" id="main-content" role="application" aria-label="Wahala Sorter priority board">
+      <Confetti active={confettiKey > 0} key={confettiKey} />
+
       <header className="header" role="banner">
         <div className="header-left">
           <span className="pin pin--red pin--wobble" aria-hidden="true" />
           <div>
             <h1 className="header-title">Wahala Sorter</h1>
-            <span className="header-sub" aria-label="Evidence board mode">Evidence Board</span>
+            <span className="header-sub" aria-label="The Board">The Board</span>
           </div>
         </div>
         <div className="header-right">
-          <span className="task-summary" aria-label={`${totalTasks} total tasks`}>
-            <svg className="task-summary-icon" viewBox="0 0 16 16" fill="none" width="12" height="12" aria-hidden="true">
-              <path d="M10 2l4 4-2 2a4 4 0 01-1 3l-1 1-5-5 1-1a4 4 0 013-1l2-2z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4 12l-2 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-            </svg>
+          <button className="header-icon-btn" onClick={() => setShowDrawer(true)} aria-label="Menu" title="Menu">
+            <svg viewBox="0 0 16 16" fill="none" width="16" height="16"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </button>
+          <button className="header-icon-btn" onClick={() => setShowMobileSearch(s => !s)} aria-label={showMobileSearch ? 'Close search' : 'Open search'}>
+            <svg viewBox="0 0 16 16" fill="none" width="16" height="16"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </button>
+          <span className="task-summary desktop-only" aria-label={`${totalTasks} total tasks`}>
+            <svg className="task-summary-icon" viewBox="0 0 16 16" fill="none" width="12" height="12"><path d="M10 2l4 4-2 2a4 4 0 01-1 3l-1 1-5-5 1-1a4 4 0 013-1l2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 12l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             <span className="task-summary-count">{totalTasks}</span>
           </span>
-          <button
-            className="trash-btn"
-            onClick={() => setShowTrash(true)}
-            disabled={trashBin.length === 0}
-            aria-label={`View trash (${trashBin.length} items)`}
-          >
-            <span aria-hidden="true">&#x1F5D1;</span>
-            {trashBin.length > 0 && <span className="trash-count">{trashBin.length}</span>}
-          </button>
-          <button
-            className="back-btn"
-            onClick={() => { window.location.hash = '' }}
-            aria-label="Return to home page"
-          >
-            <span aria-hidden="true">&larr;</span> <span className="back-btn-label">Home</span>
-          </button>
         </div>
       </header>
 
-      <AddTaskForm onAdd={addTask} />
+      {showMobileSearch && (
+        <div className="mobile-search">
+          <div className="search-input-wrap">
+            <svg className="search-icon" viewBox="0 0 16 16" fill="none" width="14" height="14"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            <input className="search-input" placeholder="Search tasks..." value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+            {search && <button className="search-clear" onClick={() => setSearch('')} aria-label="Clear">&times;</button>}
+          </div>
+        </div>
+      )}
+
+      <SearchBar query={search} onQuery={setSearch} projectFilter={projectFilter} onProjectFilter={setProjectFilter} projects={projects} showCompleted={showCompleted} onShowCompleted={setShowCompleted} />
+
+      <FilterChips projects={projects} active={projectFilter} onChange={setProjectFilter} />
 
       {selectionMode && (
         <div className="bulk-bar">
           <span className="bulk-bar-count">{selectedIds.size} selected</span>
-          <button className="bulk-bar-btn bulk-bar-btn--select-all" onClick={selectAll}>
-            {selectedIds.size === totalTasks ? 'Deselect All' : 'Select All'}
-          </button>
+          <button className="bulk-bar-btn bulk-bar-btn--select-all" onClick={selectAll}>{selectedIds.size === totalTasks ? 'Deselect All' : 'Select All'}</button>
           <div className="bulk-bar-actions">
             {COLUMNS.map(col => (
-              <button key={col.id} className={`bulk-bar-btn bulk-bar-btn--${col.id}`} onClick={() => bulkMove(col.id)} disabled={selectedIds.size === 0}>
-                &rarr; {col.label}
-              </button>
+              <button key={col} className={`bulk-bar-btn bulk-bar-btn--${col}`} onClick={() => bulkMove(col)} disabled={selectedIds.size === 0}>&rarr; {settings.columnLabels[col]}</button>
             ))}
-            <button className="bulk-bar-btn bulk-bar-btn--delete" onClick={bulkDelete} disabled={selectedIds.size === 0}>
-              &times; Delete
-            </button>
+            <button className="bulk-bar-btn bulk-bar-btn--delete" onClick={bulkDelete} disabled={selectedIds.size === 0}>&times; Delete</button>
           </div>
         </div>
       )}
 
       <div className="zoom-area" ref={zoomAreaRef} style={{ '--zoom': zoom } as React.CSSProperties}>
         <AnimatePresence mode="popLayout">
-          <Board
-            key="board"
-            tasksByColumn={tasksByColumn}
-            columns={COLUMNS}
-            now={now}
-            dragOver={dragOver}
-            touchDragId={touchDragId}
-            selectionMode={selectionMode}
-            selectedIds={selectedIds}
-            emptyMessages={EMPTY_MESSAGES}
-            onDelete={deleteTask}
-            onEdit={editTask}
-            onMove={moveTask}
-            onClearColumn={clearColumn}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onTouchDragStart={handleTouchDragStart}
-            onTouchDrop={handleTouchDrop}
-            onTouchDragCancel={handleTouchDragCancel}
-            onToggleSelect={toggleSelectId}
-          />
+          <Board key="board" tasksByColumn={tasksByColumn} columns={COLUMNS.map(c => ({ id: c, label: settings.columnLabels[c], description: settings.columnDescriptions[c] }))}
+            now={now} projects={projects} dragOver={dragOver} touchDragId={touchDragId} selectionMode={selectionMode} selectedIds={selectedIds}
+            emptyMessages={EMPTY_MESSAGES} sortMode={settings.defaultSort}
+            onDelete={deleteTask} onEdit={editTask} onMove={moveTask} onUpdate={updateTask} onClearColumn={clearColumn}
+            onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+            onTouchDragStart={handleTouchDragStart} onTouchDrop={handleTouchDrop} onTouchDragCancel={handleTouchDragCancel} onToggleSelect={toggleSelectId} />
         </AnimatePresence>
       </div>
+
+      {currentWeek && <WeekSummaryCard {...currentWeek} />}
+
+      <button className="fab" onClick={() => setShowAddModal(true)} aria-label="Add task">
+        <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+      </button>
 
       <div className="zoom-controls" role="group" aria-label="Zoom controls">
         <button className="zoom-btn" onClick={zoomOut} disabled={zoom <= 0.4} aria-label="Zoom out">&minus;</button>
@@ -459,41 +429,33 @@ function App() {
         <button className="zoom-btn" onClick={zoomIn} disabled={zoom >= 1.45} aria-label="Zoom in">+</button>
       </div>
 
-      <Footer />
-
       {showTrash && trashBin.length > 0 && (
         <div className="trash-overlay" onClick={() => setShowTrash(false)}>
           <div className="trash-drawer" onClick={e => e.stopPropagation()}>
-            <div className="trash-header">
-              <h2 className="trash-title">Trash</h2>
-              <button className="trash-close" onClick={() => setShowTrash(false)} aria-label="Close trash">&times;</button>
-            </div>
+            <div className="trash-header"><h2 className="trash-title">Trash</h2><button className="trash-close" onClick={() => setShowTrash(false)} aria-label="Close">&times;</button></div>
             <p className="trash-sub">{trashBin.length} deleted task{trashBin.length > 1 ? 's' : ''}</p>
             <div className="trash-list">
               {trashBin.map(task => (
                 <div key={task.id} className="trash-item">
-                  <div className="trash-item-content">
-                    <span className="trash-item-title">{task.title}</span>
-                    <span className="trash-item-meta">{task.column}</span>
-                  </div>
-                  <button className="trash-restore-btn" onClick={() => restoreFromTrash(task)}>
-                    Restore
-                  </button>
+                  <div className="trash-item-content"><span className="trash-item-title">{task.title}</span><span className="trash-item-meta">{task.column}</span></div>
+                  <button className="trash-restore-btn" onClick={() => restoreFromTrash(task)}>Restore</button>
                 </div>
               ))}
             </div>
-            <button className="trash-clear-btn" onClick={() => { clearTrash(); setShowTrash(false); }}>
-              Empty Trash
-            </button>
+            <button className="trash-clear-btn" onClick={() => clearTrash()}>Empty Trash</button>
           </div>
         </div>
       )}
 
+      <AddTaskModal open={showAddModal} projects={projects} onClose={() => setShowAddModal(false)} onAdd={addTask} />
+      <AppDrawer open={showDrawer} showCompleted={showCompleted} weekSummary={currentWeek} trashCount={trashBin.length}
+        onClose={() => setShowDrawer(false)} onShowCompleted={setShowCompleted}
+        onOpenSettings={() => setShowSettings(true)} onOpenTrash={() => setShowTrash(true)}
+        onGoHome={() => { window.location.hash = '' }} />
+      <SettingsDrawer open={showSettings} settings={settings} projects={projects} onClose={() => setShowSettings(false)}
+        onUpdate={updateSettings} onAddProject={addProject} onRemoveProject={removeProject} onRenameProject={renameProject} />
+      <OnboardingOverlay open={showOnboarding} onDone={finishOnboarding} />
       <Toast toast={toast} />
-
-      <div aria-live="polite" aria-atomic="true" className="sr-only" role="status">
-        {toast?.message ?? ''}
-      </div>
     </div>
   );
 }

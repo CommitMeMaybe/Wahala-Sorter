@@ -102,17 +102,17 @@ export function IntroScene() {
           className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight text-[#F5E6C8] leading-none"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Every day
+          Every morning
           <br />
-          <span className="italic text-[#E8D5A8]/80">arrives with its own pile.</span>
+          <span className="italic text-[#E8D5A8]/80">drops its own pile on your desk.</span>
         </h1>
 
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-xl mx-auto leading-relaxed"
         >
-          NEPA. Clients. Materials. Another run to the park.{' '}
-          <span className="italic text-[#E8D5A8]/70">A loose thread waiting to be pinned.</span>
+          NEPA cuts the light. Client wants photos by noon. Your mechanic has been calling since yesterday.{' '}
+          <span className="italic text-[#E8D5A8]/70">A dozen loose threads before the coffee kicks in.</span>
         </p>
 
         <div

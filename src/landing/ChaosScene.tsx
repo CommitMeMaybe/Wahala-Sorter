@@ -299,15 +299,15 @@ export function ChaosScene() {
           className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Everywhere at once.
+          Every surface has a note.
           <br />
-          <span className="italic text-[#CC3333]">Nowhere to pin it.</span>
+          <span className="italic text-[#CC3333]">Every note is shouting at once.</span>
         </h2>
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto leading-relaxed"
         >
-          Fifteen scraps of paper. Zero system. Each one urgent. Each one forgotten by noon. The pile grows while you chase yesterday.
+          NEPA pings. WhatsApp dings. Your mechanic has been calling since morning. Fifteen scraps, zero air — one desk drowning before the coffee kicks in.
         </p>
       </div>
     </section>

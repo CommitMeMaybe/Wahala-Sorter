@@ -108,16 +108,16 @@ export function SortingScene() {
         className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        Divide. Prioritize.
+        Three columns. One rule.
         <br />
-        <span className="italic text-[#3A6B9F]">Order finds its way.</span>
+        <span className="italic text-[#3A6B9F]">Your head stops spinning.</span>
       </h2>
 
       <p
         ref={bodyRef}
         className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-16"
       >
-        Three columns. One rule: what matters now goes first. Everything else finds its place.
+        Now. Soon. Later. Not a system — a reflex. Pin what belongs to now. Let everything else find its shelf.
       </p>
 
       <div className="text-center md:hidden mb-4">
