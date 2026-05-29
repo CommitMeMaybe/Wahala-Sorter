@@ -297,9 +297,9 @@ export function ChaosScene() {
           className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          It all lands on you.
+          Everything pulls at once.
           <br />
-          <span className="italic text-[#CC3333]">The board catches everything.</span>
+          <span className="italic text-[#CC3333]">Drop it here and breathe.</span>
         </h2>
         <p
           ref={bodyRef}

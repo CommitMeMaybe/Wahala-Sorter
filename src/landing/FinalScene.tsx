@@ -80,9 +80,9 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
           className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Stop juggling everything.
+          Put the weight down.
           <br />
-          <span className="italic text-[#E8D5A8]/70">Sort your day into Now, Soon, and Later.</span>
+          <span className="italic text-[#E8D5A8]/70">Pick up your peace.</span>
         </h2>
 
         <p

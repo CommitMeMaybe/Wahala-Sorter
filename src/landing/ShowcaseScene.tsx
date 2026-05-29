@@ -101,9 +101,9 @@ export function ShowcaseScene() {
         className="text-3xl sm:text-5xl md:text-6xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        See it all in one place.
+        One glance.
         <br />
-        <span className="text-[#E8D5A8]/60">Nothing falls through the cracks.</span>
+        <span className="text-[#E8D5A8]/60">The whole picture clears.</span>
       </h2>
 
       <p

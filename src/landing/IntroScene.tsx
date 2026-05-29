@@ -100,9 +100,9 @@ export function IntroScene() {
           className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight text-[#F5E6C8] leading-none"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Life piles up.
+          Life spills everywhere.
           <br />
-          <span className="italic text-[#E8D5A8]/80">This board sorts it out.</span>
+          <span className="italic text-[#E8D5A8]/80">The board catches it all.</span>
         </h1>
 
         <p

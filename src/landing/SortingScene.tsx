@@ -106,9 +106,9 @@ export function SortingScene() {
         className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        Three columns. One board.
+        One drag.
         <br />
-        <span className="italic text-[#3A6B9F]">Your head clears up.</span>
+        <span className="italic text-[#3A6B9F]">A knot comes undone.</span>
       </h2>
 
       <p
