@@ -61,7 +61,7 @@ export function defaultSettings(): AppSettings {
   return {
     columnOrder: ['now', 'soon', 'later'],
     columnLabels: { now: 'Now', soon: 'Soon', later: 'Later' },
-    columnDescriptions: { now: 'Burning. Do it now.', soon: 'Coming up. Don\'t drop it.', later: 'Distant. But not forgotten.' },
+    columnDescriptions: { now: 'Do this now', soon: 'Do this next', later: 'Do this later' },
     defaultSort: 'created',
     soundEnabled: false,
     confettiEnabled: true,

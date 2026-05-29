@@ -2,8 +2,6 @@ import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
-
 const CHAOS_TASKS = [
   'NEPA don go', 'Reply client', 'Pickup at Ojota',
   'Send invoice', 'Fix Figma', 'Call mechanic',
@@ -227,7 +225,8 @@ export function ChaosScene() {
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
+          if (blur > 0) section.style.setProperty('filter', `blur(${blur}px)`)
+          else section.style.removeProperty('filter')
         },
       })
     }, sectionRef)
@@ -247,7 +246,6 @@ export function ChaosScene() {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
-      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
     >
       <div
         ref={parallaxRef}
@@ -299,15 +297,15 @@ export function ChaosScene() {
           className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Every surface has a note.
+          It all lands on you.
           <br />
-          <span className="italic text-[#CC3333]">Every note is shouting at once.</span>
+          <span className="italic text-[#CC3333]">The board catches everything.</span>
         </h2>
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto leading-relaxed"
         >
-          NEPA pings. WhatsApp dings. Your mechanic has been calling since morning. Fifteen scraps, zero air — one desk drowning before the coffee kicks in.
+          NEPA. WhatsApp. The mechanic. The client. Fifteen loose ends before your coffee gets cold. Stop holding it all in your head — drop it on the board instead.
         </p>
       </div>
     </section>

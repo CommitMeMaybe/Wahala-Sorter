@@ -15,14 +15,16 @@ import { WeekSummaryCard } from './components/WeekSummary';
 import { Confetti } from './components/Confetti';
 import { loadTasks, saveTasks, loadTrash, saveTrash, loadProjects, saveProjects, loadSettings, saveSettings } from './utils/storage';
 import { nextOccurrence } from './utils/recurrence';
+import { playTaskComplete, playTaskDelete, playTaskMove, playTaskAdd } from './utils/sounds';
+import { exportBackup, importBackup } from './utils/backup';
 import './App.css';
 
 const COLUMNS: ColumnId[] = ['now', 'soon', 'later'];
 
 const EMPTY_MESSAGES: Record<ColumnId, string> = {
-  now: 'Clear desk. Breathe while it lasts.',
-  soon: 'Nothing queued. Suspiciously quiet.',
-  later: 'Nothing deferred. Are you sure?',
+  now: 'Nothing urgent right now. Enjoy it while it lasts.',
+  soon: 'Nothing on the horizon yet.',
+  later: 'Nothing set aside. Is that right?',
 };
 
 function App() {
@@ -99,14 +101,17 @@ function App() {
 
   const addTask = useCallback((title: string, projectId?: string, column?: ColumnId) => {
     const col = column || 'now';
-    const maxOrder = tasks.filter(t => t.column === col).length;
-    setTasks(prev => [...prev, {
-      id: crypto.randomUUID(), title, column: col, createdAt: Date.now(),
-      recurrence: 'none', subtasks: [], tags: [], sortOrder: maxOrder, notes: '',
-      projectId,
-    }]);
+    setTasks(prev => {
+      const maxOrder = prev.filter(t => t.column === col).length;
+      return [...prev, {
+        id: crypto.randomUUID(), title, column: col, createdAt: Date.now(),
+        recurrence: 'none', subtasks: [], tags: [], sortOrder: maxOrder, notes: '',
+        projectId,
+      }];
+    });
+    if (settings.soundEnabled) playTaskAdd();
     showToast(`Pinned "${title}" to ${settings.columnLabels[col]}.`);
-  }, [tasks, showToast, settings.columnLabels]);
+  }, [showToast, settings]);
 
   const deleteTask = useCallback((id: string, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
@@ -114,6 +119,7 @@ function App() {
     if (task) {
       undoStack.current = task;
       setTrashBin(prev => [task, ...prev]);
+      if (settings.soundEnabled) playTaskDelete();
       if (!silent) showToast('Gone. To the archive.', {
         label: 'Undo',
         onClick: () => {
@@ -127,7 +133,7 @@ function App() {
         },
       });
     }
-  }, [tasks, showToast, clearToast]);
+  }, [tasks, showToast, clearToast, settings]);
 
   const editTask = useCallback((id: string, title: string) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
@@ -135,24 +141,23 @@ function App() {
   }, [showToast]);
 
   const updateTask = useCallback((id: string, patch: Partial<Task>) => {
-    setTasks(prev => {
-      const next = prev.map(t => t.id === id ? { ...t, ...patch } : t);
-      const task = next.find(t => t.id === id);
-      if (task && patch.completedAt) {
-        applyRecurrence(task);
-        if (settings.confettiEnabled) setConfettiKey(k => k + 1);
-        showToast('Done!');
-      }
-      return next;
-    });
-  }, [applyRecurrence, settings.confettiEnabled, showToast]);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    if (patch.completedAt) {
+      const task = tasks.find(t => t.id === id);
+      if (task) applyRecurrence(task);
+      if (settings.confettiEnabled) setConfettiKey(k => k + 1);
+      if (settings.soundEnabled) playTaskComplete();
+      showToast('Done!');
+    }
+  }, [tasks, applyRecurrence, settings]);
 
   const moveTask = useCallback((id: string, to: ColumnId, silent?: boolean) => {
     const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, column: to } : t));
     setDragOver(null);
+    if (settings.soundEnabled) playTaskMove();
     if (task && !silent) showToast(`Slotted into ${settings.columnLabels[to]}.`);
-  }, [tasks, showToast, settings.columnLabels]);
+  }, [tasks, showToast, settings]);
 
   const clearColumn = useCallback((colId: ColumnId) => {
     const toRemove = tasks.filter(t => t.column === colId);
@@ -309,6 +314,23 @@ function App() {
   const renameProject = useCallback((id: string, name: string) => setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p)), []);
   const finishOnboarding = useCallback(() => { setShowOnboarding(false); setSettings(s => ({ ...s, onboardingDone: true })); }, [setSettings]);
 
+  const handleExport = useCallback(() => {
+    exportBackup(tasks, trashBin, projects, settings);
+    showToast('Backup downloaded.');
+  }, [tasks, trashBin, projects, settings, showToast]);
+
+  const handleImport = useCallback((file: File) => {
+    importBackup(file).then(data => {
+      setTasks(data.tasks);
+      setTrashBin(data.trash);
+      setProjects(data.projects);
+      setSettings(data.settings);
+      showToast(`Imported ${data.tasks.length} tasks from backup.`);
+    }).catch(err => {
+      showToast(err.message || 'Import failed.');
+    });
+  }, [showToast]);
+
   const getWeekStartStr = (d: Date) => {
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
@@ -451,7 +473,8 @@ function App() {
       <AppDrawer open={showDrawer} showCompleted={showCompleted} weekSummary={currentWeek} trashCount={trashBin.length}
         onClose={() => setShowDrawer(false)} onShowCompleted={setShowCompleted}
         onOpenSettings={() => setShowSettings(true)} onOpenTrash={() => setShowTrash(true)}
-        onGoHome={() => { window.location.hash = '' }} />
+        onGoHome={() => { window.location.hash = '' }}
+        onExport={handleExport} onImport={handleImport} />
       <SettingsDrawer open={showSettings} settings={settings} projects={projects} onClose={() => setShowSettings(false)}
         onUpdate={updateSettings} onAddProject={addProject} onRemoveProject={removeProject} onRenameProject={renameProject} />
       <OnboardingOverlay open={showOnboarding} onDone={finishOnboarding} />

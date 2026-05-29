@@ -16,38 +16,9 @@ export function formatDate(ms?: number): string {
   return d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
 }
 
-export function formatDateFull(ms?: number): string {
-  if (!ms) return '';
-  const d = new Date(ms);
-  return d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-export function formatTimeHM(ms?: number): string {
-  if (!ms) return '';
-  const d = new Date(ms);
-  return d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
-}
-
 export function isOverdue(ms?: number): boolean {
   if (!ms) return false;
   return Date.now() > ms;
-}
-
-export function isToday(ms: number): boolean {
-  const d = new Date(ms);
-  const t = new Date();
-  return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
-}
-
-export function isThisWeek(ms: number): boolean {
-  const d = new Date(ms);
-  const t = new Date();
-  const startOfWeek = new Date(t);
-  startOfWeek.setDate(t.getDate() - t.getDay() + (t.getDay() === 0 ? -6 : 1));
-  startOfWeek.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
-  return d >= startOfWeek && d < endOfWeek;
 }
 
 export function getWeekStart(ts?: number): string {

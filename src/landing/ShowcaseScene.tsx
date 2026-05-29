@@ -2,8 +2,6 @@ import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export function ShowcaseScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
@@ -54,7 +52,8 @@ export function ShowcaseScene() {
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
+          if (blur > 0) section.style.setProperty('filter', `blur(${blur}px)`)
+          else section.style.removeProperty('filter')
         },
       })
     }, sectionRef)
@@ -88,7 +87,6 @@ export function ShowcaseScene() {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 overflow-hidden"
-      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
     >
       <div
         ref={parallaxRef}
@@ -103,16 +101,16 @@ export function ShowcaseScene() {
         className="text-3xl sm:text-5xl md:text-6xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        Everything has a peg.
+        See it all in one place.
         <br />
-        <span className="text-[#E8D5A8]/60">Everything has a place.</span>
+        <span className="text-[#E8D5A8]/60">Nothing falls through the cracks.</span>
       </h2>
 
       <p
         ref={bodyRef}
         className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-12"
       >
-        Now. Soon. Later. Three slots, no guilt, nothing lost in the pile. Pin it where it belongs and watch the noise settle.
+        Three slots. Drag tasks between them as your day changes. Every loose end has a home — and nothing gets forgotten.
       </p>
 
       <div ref={boardRef} className="w-full max-w-4xl board-frame p-4 sm:p-6">

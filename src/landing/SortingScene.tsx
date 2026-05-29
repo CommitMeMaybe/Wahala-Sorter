@@ -3,8 +3,6 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { HandAnimation } from './HandAnimation'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export function SortingScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
@@ -64,7 +62,8 @@ export function SortingScene() {
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
+          if (blur > 0) section.style.setProperty('filter', `blur(${blur}px)`)
+          else section.style.removeProperty('filter')
         },
       })
     }, sectionRef)
@@ -91,7 +90,6 @@ export function SortingScene() {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 overflow-hidden"
-      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
       aria-labelledby="sorting-heading"
     >
       <div
@@ -108,16 +106,16 @@ export function SortingScene() {
         className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8] text-center mb-6"
         style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
       >
-        Three columns. One rule.
+        Three columns. One board.
         <br />
-        <span className="italic text-[#3A6B9F]">Your head stops spinning.</span>
+        <span className="italic text-[#3A6B9F]">Your head clears up.</span>
       </h2>
 
       <p
         ref={bodyRef}
         className="text-base sm:text-lg text-[#E8D5A8]/70 max-w-lg mx-auto text-center leading-relaxed mb-16"
       >
-        Now. Soon. Later. Not a system — a reflex. Pin what belongs to now. Let everything else find its shelf.
+        Now. Soon. Later. Drag a task where it belongs and move on. Everything else waits its turn.
       </p>
 
       <div className="text-center md:hidden mb-4">

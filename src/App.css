@@ -4,10 +4,6 @@
   padding: 24px 20px 60px;
 }
 
-#main-content {
-  outline: none;
-}
-
 .header {
   display: flex;
   align-items: center;
@@ -274,6 +270,7 @@
     0 2px 6px var(--paper-shadow),
     0 1px 2px rgba(0,0,0,0.08);
   transform: rotate(var(--task-rot, 0deg));
+  flex-wrap: wrap;
 }
 
 .task::before {
@@ -750,43 +747,11 @@
   align-self: flex-start;
 }
 
-.task-edit-btn {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: opacity 0.15s, color 0.15s, background 0.15s, transform 0.15s;
-  padding: 0;
-  position: relative;
-  z-index: 1;
-  opacity: 0.3;
-  border-radius: 0;
-}
-
-.task:hover .task-edit-btn,
-.task:hover .task-delete {
-  opacity: 0.6;
-}
-
 .task-delete:hover,
 .task-delete:focus-visible {
   color: var(--pin-red);
   opacity: 1;
   background: rgba(204, 51, 51, 0.06);
-  transform: scale(1.1);
-}
-
-.task-edit-btn:hover,
-.task-edit-btn:focus-visible {
-  color: var(--paper);
-  opacity: 1;
-  background: rgba(245, 230, 200, 0.08);
   transform: scale(1.1);
 }
 
@@ -1112,7 +1077,7 @@
     z-index: 900;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
-    animation: task-menu-fadein 0.15s ease-out;
+    animation: trash-fadein 0.15s ease-out;
   }
 
   .task-menu {
@@ -1125,7 +1090,7 @@
     border-radius: 16px 16px 0 0;
     padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4);
-    animation: task-menu-slideup 0.25s ease-out;
+    animation: trash-slideup 0.25s ease-out;
   }
 
   .task-menu-header {
@@ -1252,39 +1217,22 @@
     font-size: 1.1rem;
   }
 
-  @keyframes task-menu-slideup {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-
-  @keyframes task-menu-fadein {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .task, .sticky-note {
-    transition: none !important;
-  }
-
   .task:hover {
     transform: none !important;
     filter: none !important;
   }
-
   .column--drag-over .column-inner {
     animation: none !important;
   }
-
   .task::before {
     animation: none !important;
   }
-
   .zoom-area--flash {
     animation: none !important;
   }
-
   .task-longpress-progress {
     display: none !important;
   }
@@ -1299,8 +1247,6 @@
   .header-sub {
     display: none;
   }
-
-
 }
 
 @media (max-width: 700px) {
@@ -1361,9 +1307,8 @@
     height: 40px;
   }
 
-  .task-edit-btn {
-    width: 40px;
-    height: 40px;
+  .desktop-only {
+    display: none;
   }
 }
 
@@ -1379,7 +1324,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: task-menu-fadein 0.15s ease-out;
+  animation: trash-fadein 0.15s ease-out;
 }
 .modal-sheet {
   width: 100%;
@@ -1535,6 +1480,51 @@
   flex-shrink: 0;
   width: 20px;
   text-align: center;
+  opacity: 0.5;
+}
+
+@media (min-width: 701px) {
+  .header-icon-btn[aria-label*="search"],
+  .mobile-search {
+    display: none;
+  }
+
+  .drawer-overlay--bottom {
+    background: transparent;
+    backdrop-filter: none;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 80px 20px 0 0;
+  }
+  .drawer-overlay--bottom .modal-handle {
+    display: none;
+  }
+  .drawer-overlay--bottom .drawer-sheet {
+    width: 260px;
+    max-width: none;
+    max-height: none;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: drawer-dropin 0.15s ease-out;
+  }
+  .drawer-overlay--bottom .drawer-item {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    min-height: 40px;
+  }
+  .drawer-overlay--bottom .drawer-week-stats {
+    font-size: 0.75rem;
+    padding: 8px 12px;
+  }
+
+  @keyframes drawer-dropin {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+.drawer-item svg.drawer-item-icon {
   opacity: 0.5;
 }
 
@@ -1868,56 +1858,6 @@
   margin-top: 2px;
   font-family: var(--font-body);
 }
-
-/* --- Confirmation Dialog --- */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 950;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.dialog {
-  background: #1A0F0A;
-  border: 1px solid rgba(245, 230, 200, 0.12);
-  max-width: 380px;
-  width: 100%;
-  padding: 28px;
-  animation: onboarding-enter 0.2s ease-out;
-}
-.dialog-title {
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  color: var(--paper);
-  margin: 0 0 8px;
-}
-.dialog-message {
-  font-size: 0.85rem;
-  color: var(--paper);
-  opacity: 0.7;
-  margin: 0 0 24px;
-  line-height: 1.5;
-  font-family: var(--font-body);
-}
-.dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
-.dialog-btn {
-  padding: 12px 24px;
-  min-height: 44px;
-  border: 1px solid rgba(245, 230, 200, 0.12);
-  background: transparent;
-  color: var(--paper);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.dialog-btn:hover { border-color: rgba(245, 230, 200, 0.3); }
-.dialog-btn--confirm { background: var(--pin-red); border-color: var(--pin-red); }
-.dialog-btn--danger { background: transparent; border-color: var(--pin-red); color: var(--pin-red); }
 
 /* --- Confetti Canvas --- */
 .confetti-canvas {

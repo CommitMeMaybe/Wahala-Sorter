@@ -2,8 +2,6 @@ import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
@@ -54,7 +52,8 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
+          if (blur > 0) section.style.setProperty('filter', `blur(${blur}px)`)
+          else section.style.removeProperty('filter')
         },
       })
     }, sectionRef)
@@ -66,7 +65,6 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex flex-col items-center justify-center px-6 py-32 overflow-hidden"
-      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
     >
       <div
         ref={parallaxRef}
@@ -82,16 +80,16 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
           className="text-4xl sm:text-6xl md:text-7xl font-light tracking-tight text-[#F5E6C8]"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Stop holding it all.
+          Stop juggling everything.
           <br />
-          <span className="italic text-[#E8D5A8]/70">Your skull is not a corkboard.</span>
+          <span className="italic text-[#E8D5A8]/70">Sort your day into Now, Soon, and Later.</span>
         </h2>
 
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-md mx-auto leading-relaxed"
         >
-          Your brain is already full. That's what the board is for. Pin the noise. Find the signal.
+          A simple board where you drop tasks, drag them between columns, and clear your head. No accounts, no setup, no noise.
         </p>
 
         <button
@@ -100,12 +98,12 @@ export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
           className="mt-12 px-10 py-4 bg-[#CC3333] text-[#F5E6C8] text-sm font-semibold tracking-wider uppercase hover:bg-[#AA2222] transition-colors duration-300 inline-flex items-center gap-3"
         >
           <span className="pin pin--yellow" style={{ width: '10px', height: '10px' }} />
-          Enter the Board
+          Start sorting
         </button>
       </div>
 
       <p className="absolute bottom-8 text-[10px] text-[#E8D5A8]/10 tracking-widest uppercase font-mono">
-        Built for the builders of Lagos. One pin at a time.
+        Free. No sign-up. Just sort.
       </p>
     </section>
   )

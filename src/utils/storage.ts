@@ -1,11 +1,10 @@
-import type { Task, Project, AppSettings, WeekSummary } from '../types';
+import type { Task, Project, AppSettings } from '../types';
 import { defaultSettings } from '../types';
 
 const TASKS_KEY = 'wahala-tasks';
 const TRASH_KEY = 'wahala-trash';
 const PROJECTS_KEY = 'wahala-projects';
 const SETTINGS_KEY = 'wahala-settings';
-const STATS_KEY = 'wahala-stats';
 
 function migrateTask(t: Record<string, unknown>): Task {
   return {
@@ -97,20 +96,4 @@ export function saveSettings(s: AppSettings) {
   } catch { /* storage may be full */ }
 }
 
-export function loadStats(): WeekSummary[] {
-  try {
-    const raw = localStorage.getItem(STATS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as WeekSummary[];
-  } catch {
-    return [];
-  }
-}
 
-export function saveStats(stats: WeekSummary[]) {
-  try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch { /* storage may be full */ }
-}

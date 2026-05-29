@@ -2,8 +2,6 @@ import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export function IntroScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLHeadingElement>(null)
@@ -63,7 +61,8 @@ export function IntroScene() {
         onUpdate: (self) => {
           const maxBlur = window.innerWidth <= 700 ? 0.8 : 1.5
           const blur = self.progress * maxBlur
-          section.style.setProperty('--cinematic-blur', `${blur}px`)
+          if (blur > 0) section.style.setProperty('filter', `blur(${blur}px)`)
+          else section.style.removeProperty('filter')
         },
       })
     }, sectionRef)
@@ -75,7 +74,6 @@ export function IntroScene() {
     <section
       ref={sectionRef}
       className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden"
-      style={{ filter: 'blur(var(--cinematic-blur, 0px))' }}
     >
       <div
         ref={parallaxRef}
@@ -102,24 +100,24 @@ export function IntroScene() {
           className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight text-[#F5E6C8] leading-none"
           style={{ fontFamily: "'DM Serif Display', Georgia, serif" }}
         >
-          Every morning
+          Life piles up.
           <br />
-          <span className="italic text-[#E8D5A8]/80">drops its own pile on your desk.</span>
+          <span className="italic text-[#E8D5A8]/80">This board sorts it out.</span>
         </h1>
 
         <p
           ref={bodyRef}
           className="mt-8 text-base sm:text-lg text-[#E8D5A8]/70 max-w-xl mx-auto leading-relaxed"
         >
-          NEPA cuts the light. Client wants photos by noon. Your mechanic has been calling since yesterday.{' '}
-          <span className="italic text-[#E8D5A8]/70">A dozen loose threads before the coffee kicks in.</span>
+          One board. Three columns: Now, Soon, Later.{' '}
+          <span className="italic text-[#E8D5A8]/70">Stop holding it all in your head — pin it where it belongs.</span>
         </p>
 
         <div
           ref={scrollRef}
           className="mt-16 flex flex-col items-center gap-3 text-[#E8D5A8]/40 tracking-widest uppercase"
         >
-          <span className="text-[11px] font-mono letter-spacing-[0.25em]">Scroll to unravel</span>
+          <span className="text-[11px] font-mono letter-spacing-[0.25em]">Scroll to see how</span>
           <span className="block w-px h-10 bg-gradient-to-b from-[#E8D5A8]/40 to-transparent" />
         </div>
       </div>
