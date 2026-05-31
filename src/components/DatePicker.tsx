@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface Props {
   dueDate?: number;
   reminderTime?: number;
@@ -7,6 +9,11 @@ interface Props {
 export function DatePicker({ dueDate, reminderTime, onChange }: Props) {
   const dateStr = dueDate ? new Date(dueDate).toISOString().slice(0, 10) : '';
   const timeStr = dueDate ? new Date(dueDate).toTimeString().slice(0, 5) : '';
+  
+  const baseId = useId();
+  const dateId = `${baseId}-date`;
+  const timeId = `${baseId}-time`;
+  const remindId = `${baseId}-remind`;
 
   const handleDate = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -37,15 +44,30 @@ export function DatePicker({ dueDate, reminderTime, onChange }: Props) {
   return (
     <div className="date-picker">
       <div className="date-picker-row">
-        <label className="date-picker-label">Due</label>
-        <input type="date" className="date-picker-input" value={dateStr} onChange={handleDate} />
-        {dateStr && <input type="time" className="date-picker-input date-picker-input--time" value={timeStr} onChange={handleTime} />}
+        <label htmlFor={dateId} className="date-picker-label">Due</label>
+        <input id={dateId} type="date" className="date-picker-input" value={dateStr} onChange={handleDate} />
+        {dateStr && (
+          <input
+            id={timeId}
+            type="time"
+            className="date-picker-input date-picker-input--time"
+            value={timeStr}
+            onChange={handleTime}
+            aria-label="Due time"
+          />
+        )}
         {dateStr && <button className="date-picker-clear" onClick={clear} aria-label="Clear due date">&times;</button>}
       </div>
       {dueDate && (
         <div className="date-picker-row">
-          <label className="date-picker-label">Remind</label>
-          <input type="time" className="date-picker-input" value={reminderTime ? new Date(reminderTime).toTimeString().slice(0, 5) : ''} onChange={handleReminder} />
+          <label htmlFor={remindId} className="date-picker-label">Remind</label>
+          <input
+            id={remindId}
+            type="time"
+            className="date-picker-input"
+            value={reminderTime ? new Date(reminderTime).toTimeString().slice(0, 5) : ''}
+            onChange={handleReminder}
+          />
         </div>
       )}
     </div>

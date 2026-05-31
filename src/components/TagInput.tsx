@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, useId, type KeyboardEvent } from 'react';
 
 interface Props {
   tags: string[];
@@ -7,6 +7,7 @@ interface Props {
 
 export function TagInput({ tags, onChange }: Props) {
   const [input, setInput] = useState('');
+  const tagInputId = useId();
 
   const add = (t: string) => {
     const v = t.trim().toLowerCase().replace(/\s+/g, '-');
@@ -24,15 +25,23 @@ export function TagInput({ tags, onChange }: Props) {
 
   return (
     <div className="tag-input">
-      <label className="date-picker-label">Tags</label>
-      <div className="tag-chips">
+      <label htmlFor={tagInputId} className="date-picker-label">Tags</label>
+      <div className="tag-chips" role="list" aria-label="Tags list">
         {tags.map(t => (
-          <span key={t} className="tag-chip">
+          <span key={t} className="tag-chip" role="listitem">
             {t}
             <button className="tag-chip-remove" onClick={() => remove(t)} aria-label={`Remove tag ${t}`}>&times;</button>
           </span>
         ))}
-        <input className="tag-input-field" placeholder={tags.length ? '' : 'Add tag...'} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} onBlur={() => input && add(input)} />
+        <input
+          id={tagInputId}
+          className="tag-input-field"
+          placeholder={tags.length ? '' : 'Add tag...'}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          onBlur={() => input && add(input)}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface Props {
   open: boolean;
@@ -16,11 +17,28 @@ interface Props {
 
 export function AppDrawer({ open, showCompleted, weekSummary, trashCount, onClose, onShowCompleted, onOpenSettings, onOpenTrash, onGoHome, onExport, onImport }: Props) {
   const importRef = useRef<HTMLInputElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Hook up the focus trap to keep keyboard interactions within the drawer sheet when open
+  useFocusTrap(drawerRef, open);
+
   if (!open) return null;
+
   return (
     <div className="drawer-overlay drawer-overlay--bottom" onClick={onClose}>
-      <div className="drawer-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Menu">
+      <div
+        className="drawer-sheet"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        ref={drawerRef}
+      >
         <div className="modal-handle" />
+        <div className="drawer-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid rgba(44, 24, 16, 0.08)', paddingBottom: '8px' }}>
+          <h2 className="drawer-title" style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '1.1rem', fontWeight: 600, color: '#2C1810' }}>Menu</h2>
+          <button type="button" className="drawer-close" onClick={onClose} aria-label="Close menu" style={{ color: '#2C1810', background: 'rgba(44, 24, 16, 0.06)' }}>&times;</button>
+        </div>
         <div className="drawer-sheet-body">
           {weekSummary && (
             <div className="drawer-section">
@@ -33,7 +51,7 @@ export function AppDrawer({ open, showCompleted, weekSummary, trashCount, onClos
           )}
 
           <div className="drawer-section">
-            <button className="drawer-item" onClick={() => { onShowCompleted(!showCompleted); onClose(); }}>
+            <button className="drawer-item" onClick={() => { onShowCompleted(!showCompleted); onClose(); }} aria-pressed={showCompleted}>
               <span className="drawer-item-icon">{showCompleted ? '◉' : '○'}</span>
               <span>{showCompleted ? 'Hide completed' : 'Show completed'}</span>
             </button>

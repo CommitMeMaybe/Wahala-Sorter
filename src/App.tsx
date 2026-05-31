@@ -38,6 +38,7 @@ function App() {
   const [showTrash, setShowTrash] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [dragOver, setDragOver] = useState<ColumnId | null>(null);
+  
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => Date.now());
@@ -258,8 +259,13 @@ function App() {
     const rect = el.getBoundingClientRect();
     e.dataTransfer.setDragImage(el, rect.width / 2, rect.height / 2);
     el.classList.add('task--dragging');
+    document.querySelector('.board')?.classList.add('board--dragging');
   }, []);
-  const handleDragEnd = useCallback(() => { setDragOver(null); document.querySelectorAll('.task--dragging').forEach(el => el.classList.remove('task--dragging')); }, []);
+  const handleDragEnd = useCallback(() => {
+    setDragOver(null);
+    document.querySelectorAll('.task--dragging').forEach(el => el.classList.remove('task--dragging'));
+    document.querySelector('.board')?.classList.remove('board--dragging');
+  }, []);
   const handleDragOver = useCallback((e: React.DragEvent, col: ColumnId) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOver(col); }, []);
   const handleDragLeave = useCallback(() => setDragOver(null), []);
   const handleDrop = useCallback((e: React.DragEvent, col: ColumnId) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) moveTask(id, col); handleDragEnd(); }, [moveTask, handleDragEnd]);

@@ -145,11 +145,18 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
       aria-label={`Task: ${task.title}. In ${task.column} column.`}
     >
       {selectionMode && (
-        <div className="task-check" onClick={handleSelectClick}>
+        <button
+          type="button"
+          className="task-check"
+          onClick={handleSelectClick}
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`${selected ? 'Deselect' : 'Select'} task "${task.title}"`}
+        >
           <div className={`task-check-box ${selected ? 'task-check-box--checked' : ''}`}>
             {selected && <svg viewBox="0 0 12 12" fill="none" className="task-check-icon"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           </div>
-        </div>
+        </button>
       )}
       <div className="task-content">
         {editing ? (

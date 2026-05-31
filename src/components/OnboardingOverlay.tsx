@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface Props {
   open: boolean;
@@ -14,14 +15,31 @@ const STEPS = [
 
 export function OnboardingOverlay({ open, onDone }: Props) {
   const [step, setStep] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Hook up the focus trap to keep keyboard interactions within the onboarding card when open
+  useFocusTrap(cardRef, open);
 
   if (!open) return null;
   const s = STEPS[step];
 
   return (
     <div className="onboarding-overlay">
-      <div className="onboarding-card">
-        <div className="onboarding-steps">{STEPS.map((_, i) => <div key={i} className={`onboarding-dot ${i === step ? 'onboarding-dot--active' : ''} ${i < step ? 'onboarding-dot--done' : ''}`} />)}</div>
+      <div
+        className="onboarding-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={s.title}
+        ref={cardRef}
+      >
+        <div className="onboarding-steps" role="img" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`onboarding-dot ${i === step ? 'onboarding-dot--active' : ''} ${i < step ? 'onboarding-dot--done' : ''}`}
+            />
+          ))}
+        </div>
         <h2 className="onboarding-title">{s.title}</h2>
         <p className="onboarding-body">{s.body}</p>
         <div className="onboarding-actions">
