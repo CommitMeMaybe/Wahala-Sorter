@@ -1,5 +1,4 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import type { Task, ColumnId, Project } from '../types';
 import { formatTime, formatDate, isOverdue } from '../utils/time';
 import { DatePicker } from './DatePicker';
@@ -31,7 +30,6 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
   const [expanded, setExpanded] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [longPressProgress, setLongPressProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const longPressTimer = useRef<number | undefined>(undefined);
@@ -66,11 +64,11 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
     longPressInterval.current = window.setInterval(() => setLongPressProgress(prev => Math.min(prev + 50 / 400, 1)), 50);
     longPressTimer.current = window.setTimeout(() => {
       longPressFired.current = true;
-      if (selectionMode) { onTouchDragStart?.(task.id); navigator.vibrate?.(10); }
-      else onToggleSelect?.(task.id);
+      onTouchDragStart?.(task.id);
+      navigator.vibrate?.(10);
       clearLongPress();
     }, 400);
-  }, [task.id, onTouchDragStart, onToggleSelect, selectionMode, isLifted, clearLongPress]);
+  }, [task.id, onTouchDragStart, isLifted, clearLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (longPressStartPos.current) {
@@ -113,18 +111,10 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
 
   const handleTap = () => {
     if (selectionMode) { onToggleSelect?.(task.id); return; }
-    if (window.innerWidth <= 700) {
-      if (isLifted) { onTouchDragCancel?.(); return; }
-      if (touchDragId) return;
-      setShowMenu(true);
-    }
+    if (isLifted) { onTouchDragCancel?.(); return; }
   };
 
-  const handleMove = (to: ColumnId) => { onMove(task.id, to); setShowMenu(false); };
-
   const handleSelectClick = (e: React.MouseEvent) => { e.stopPropagation(); onToggleSelect?.(task.id); };
-
-  const otherColumns = columns.filter(c => c !== task.column);
 
   const doneSubtasks = task.subtasks.filter(s => s.done).length;
 
@@ -225,28 +215,6 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
       )}
 
       {longPressProgress > 0 && longPressProgress < 1 && <div className="task-longpress-progress" style={{ '--progress': longPressProgress } as React.CSSProperties} />}
-
-      {showMenu && createPortal(
-        <div className="task-menu-overlay" onClick={() => setShowMenu(false)}>
-          <div className="task-menu" onClick={e => e.stopPropagation()}>
-            <div className="task-menu-header">
-              <span className="task-menu-heading">Move to...</span>
-              <button className="task-menu-close" onClick={() => setShowMenu(false)} aria-label="Close">&times;</button>
-            </div>
-            <p className="task-menu-prompt">{task.title}</p>
-            <div className="task-menu-actions">
-              {otherColumns.map(colId => (
-                <button key={colId} className={`task-menu-btn task-menu-btn--${colId}`} onClick={() => handleMove(colId)}>
-                  <span className="task-menu-btn-indicator" />
-                  <span>{(columns.find(c => c === colId) ?? '').charAt(0).toUpperCase() + (columns.find(c => c === colId) ?? '').slice(1)}</span>
-                  <span className="task-menu-btn-arrow">&rarr;</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
