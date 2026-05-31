@@ -1,4 +1,4 @@
-import { useEffect, RefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean) {
   useEffect(() => {

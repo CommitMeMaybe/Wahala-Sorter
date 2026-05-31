@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 export function FinalScene({ onEnterApp }: { onEnterApp: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null)

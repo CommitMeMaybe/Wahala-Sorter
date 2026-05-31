@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const COLORS = ['#CC3333', '#3A6B9F', '#6B4F3A']
 
@@ -113,7 +112,7 @@ export function FlowScene() {
 
       <div ref={boardRef} className="w-full max-w-4xl landing-demo relative">
         <div className="demo-board">
-          {COLUMNS.map((col, ci) => (
+          {COLUMNS.map((col) => (
             <div key={col.label} className="demo-column" style={{ borderTop: `2px solid ${col.color}20` }}>
               <div className="demo-column-header">
                 <span

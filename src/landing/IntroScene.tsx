@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const COLORS = ['#CC3333', '#3A6B9F', '#6B4F3A']
 
