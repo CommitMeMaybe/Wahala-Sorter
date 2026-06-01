@@ -1,6 +1,6 @@
 # Wahala Sorter — Codebase Explanation
 
-*Every single line explained like you're seven years old.*
+_Every single line explained like you're seven years old._
 
 ---
 
@@ -23,6 +23,7 @@
 **Line 8** — Same for the font files.
 
 **Line 9** — `<link href="..."` — This is where we actually BUY the fonts from Google. We get two fonts:
+
 - **DM Sans** — the normal text letters
 - **DM Serif Display** — the fancy heading letters with little feet (serifs)
 
@@ -45,14 +46,17 @@
 **Line 4** — `import App from './App.tsx'` — "Go get the App component from the App.tsx file."
 
 **Lines 6-9** —
+
 ```tsx
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
 ```
+
 This means:
+
 1. Find the empty `#root` div from the HTML
 2. Plant React inside it
 3. Wrap everything in StrictMode (like a helmet)
@@ -69,6 +73,7 @@ We're saying: "There are only THREE possible names for a column. It must be `'no
 **Lines 3-8** — `export interface Task { ... }`
 
 We're drawing a blueprint for what a "task" looks like. Every task must have:
+
 - `id: string` — a name tag, like a ticket number. Every task gets its own.
 - `title: string` — what the task says, like "Buy cement"
 - `column: ColumnId` — which pile it lives in: Now, Soon, or Later
@@ -77,6 +82,7 @@ We're drawing a blueprint for what a "task" looks like. Every task must have:
 **Lines 10-14** — `export interface Column { ... }`
 
 Blueprint for a column:
+
 - `id` — now/soon/later
 - `label` — the name you see ("Now", "Soon", "Later")
 - `description` — the small words underneath ("Right now, no delay")
@@ -87,11 +93,16 @@ Blueprint for a column:
 
 ### Lines 1-4: Getting Supplies
 
+### Lines 1-4: Getting Supplies
+
 **Line 1** —
+
 ```tsx
-import { useState, useCallback, type FormEvent } from 'react';
+import { useState, useCallback, type FormEvent } from "react";
 ```
+
 We're taking three things from React's toolbox:
+
 - `useState` — a magic box that holds our data AND can change it. Like a jar of marbles. You can count the marbles, and you can add or remove marbles.
 - `useCallback` — a wrapper that makes functions remember things so they don't slow down the computer for no reason.
 - `type FormEvent` — a label for the "form submitted" event. Tells TypeScript what kind of event this is.
@@ -108,9 +119,9 @@ Bring in the styles that only apply to this App page.
 
 ```tsx
 const COLUMNS = [
-  { id: 'now', label: 'Now', description: 'Right now, no delay' },
-  { id: 'soon', label: 'Soon', description: 'Today or tomorrow' },
-  { id: 'later', label: 'Later', description: 'This week, insha Allah' },
+  { id: "now", label: "Now", description: "Right now, no delay" },
+  { id: "soon", label: "Soon", description: "Today or tomorrow" },
+  { id: "later", label: "Later", description: "This week, insha Allah" },
 ];
 ```
 
@@ -126,7 +137,7 @@ A list of three column names. This is NOT stored in state because it never chang
 function formatTime(ts: number): string {
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
@@ -166,6 +177,7 @@ const INITIAL_TASKS = [
 Four pre-made tasks so the app doesn't look empty when you first open it. Like a restaurant putting fake food in the window to show you what they sell.
 
 Each one has:
+
 - A ticket number (id)
 - What to do (title)
 - Which pile it's in (column)
@@ -190,6 +202,7 @@ We're defining the App. It's a function that returns a React component (a piece 
 **Line 32** — `const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);`
 
 Two things:
+
 - `tasks` = the current list of tasks (read it whenever you need to know what's on the board)
 - `setTasks` = the remote control that changes the list (point it at a new list and the screen updates)
 - Starts with the 4 example tasks
@@ -207,20 +220,26 @@ Two things:
 #### Lines 36-42: The Add Task Handler
 
 ```tsx
-const addTask = useCallback((e: FormEvent) => {
-  e.preventDefault();
-  const title = input.trim();
-  if (!title) return;
-  setTasks(prev => [...prev, { id: String(nextId++), title, column: 'now', createdAt: Date.now() }]);
-  setInput('');
-}, [input]);
+const addTask = useCallback(
+  (e: FormEvent) => {
+    e.preventDefault();
+    const title = input.trim();
+    if (!title) return;
+    setTasks((prev) => [
+      ...prev,
+      { id: String(nextId++), title, column: "now", createdAt: Date.now() },
+    ]);
+    setInput("");
+  },
+  [input],
+);
 ```
 
 When you press "Add" or hit Enter:
 
 1. `e.preventDefault()` — "Stop the page from refreshing!" (Forms normally refresh the page. We don't want that.)
 
-2. `const title = input.trim()` — Take what you typed and remove any extra spaces at the beginning or end. ("  hello  " becomes "hello")
+2. `const title = input.trim()` — Take what you typed and remove any extra spaces at the beginning or end. (" hello " becomes "hello")
 
 3. `if (!title) return;` — If after trimming it's empty (you typed nothing), do nothing. Can't add an empty task.
 
@@ -238,7 +257,7 @@ The `useCallback` wrapper with `[input]` means: "Only remake this function if `i
 
 ```tsx
 const deleteTask = useCallback((id: string) => {
-  setTasks(prev => prev.filter(t => t.id !== id));
+  setTasks((prev) => prev.filter((t) => t.id !== id));
 }, []);
 ```
 
@@ -254,7 +273,7 @@ When you click the × button:
 
 ```tsx
 const moveTask = useCallback((id: string, to: ColumnId) => {
-  setTasks(prev => prev.map(t => t.id === id ? { ...t, column: to } : t));
+  setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, column: to } : t)));
   setDragOver(null);
 }, []);
 ```
@@ -270,8 +289,8 @@ When you drop a task into a new column:
 
 ```tsx
 const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
-  e.dataTransfer.setData('text/plain', id);
-  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData("text/plain", id);
+  e.dataTransfer.effectAllowed = "move";
 }, []);
 ```
 
@@ -285,7 +304,7 @@ When you start picking up a task with your mouse:
 ```tsx
 const handleDragOver = useCallback((e: React.DragEvent, col: ColumnId) => {
   e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
+  e.dataTransfer.dropEffect = "move";
   setDragOver(col);
 }, []);
 ```
@@ -309,11 +328,14 @@ When you drag the task AWAY from a column, remove the dashed border.
 #### Lines 68-72: The Drop Handler
 
 ```tsx
-const handleDrop = useCallback((e: React.DragEvent, col: ColumnId) => {
-  e.preventDefault();
-  const id = e.dataTransfer.getData('text/plain');
-  if (id) moveTask(id, col);
-}, [moveTask]);
+const handleDrop = useCallback(
+  (e: React.DragEvent, col: ColumnId) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain");
+    if (id) moveTask(id, col);
+  },
+  [moveTask],
+);
 ```
 
 When you LET GO of a task over a column:
@@ -327,6 +349,7 @@ When you LET GO of a task over a column:
 This is what you SEE on the screen.
 
 **Lines 75-81** — The header:
+
 ```tsx
 <div className="app">
   <header className="header">
@@ -334,16 +357,18 @@ This is what you SEE on the screen.
     <p className="subtitle">Your daily pile, sorted.</p>
   </header>
 ```
+
 The big title at the top and the small words under it.
 
 **Lines 83-94** — The add-task form:
+
 ```tsx
 <form className="add-form" onSubmit={addTask}>
   <input
     className="add-input"
     placeholder="Add a new wahala..."
     value={input}
-    onChange={e => setInput(e.target.value)}
+    onChange={(e) => setInput(e.target.value)}
     autoFocus
   />
   <button className="add-btn" type="submit" disabled={!input.trim()}>
@@ -360,6 +385,7 @@ The big title at the top and the small words under it.
 - `onSubmit={addTask}` — When you press Enter or click Add, run `addTask`
 
 **Lines 96-143** — The board with three columns:
+
 ```tsx
 <div className="board">
   {COLUMNS.map(col => {
@@ -373,6 +399,7 @@ The big title at the top and the small words under it.
 `colTasks = tasks.filter(t => t.column === col.id)` — Look at ALL tasks. Only keep the ones that belong to THIS column. So for the "Now" column, only show tasks with `column: 'now'`.
 
 **Lines 100-105** — The column box:
+
 ```tsx
 <div
   key={col.id}
@@ -388,6 +415,7 @@ The big title at the top and the small words under it.
 - Three event handlers for drag and drop: drag over, drag leave, drop
 
 **Lines 107-113** — Column header:
+
 ```tsx
 <div className="column-header">
   <div className="column-title-row">
@@ -399,11 +427,13 @@ The big title at the top and the small words under it.
 ```
 
 Shows:
+
 - The column name ("Now") in big letters
 - A little number badge showing how many tasks are in this column (like "3")
 - The description underneath ("Right now, no delay")
 
 **Lines 115-139** — The column body (where tasks live):
+
 ```tsx
 <div className="column-body">
   {colTasks.length === 0 && (
@@ -422,8 +452,9 @@ Shows:
 - For each task, create a task card
 - `draggable` — This is what makes the task pick-up-able with your mouse
 - `onDragStart` — When you start dragging, run handleDragStart
+  cr
+  **Lines 126-137** — Inside each task card:
 
-**Lines 126-137** — Inside each task card:
 ```tsx
 <div className="task-content">
   <span className="task-title">{task.title}</span>
@@ -446,30 +477,35 @@ Shows:
 ## `src/index.css` — The Paint Job for the Whole House
 
 **Lines 1-5** — The reset:
+
 ```css
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 ```
+
 "Everything on the page: don't add weird spacing by default. Let ME control it." Like resetting all the factory settings.
 
 **Lines 7-20** — The colour palette:
+
 ```css
 :root {
-  --bg: #F4EFEA;        /* warm cream - page background */
-  --column-bg: #EAE2D9; /* slightly darker cream - column background */
-  --card-bg: #FCFAF8;   /* almost white - task card */
-  --text: #2E231E;      /* dark brown - main words */
-  --text-soft: #7A6B62; /* lighter brown - small words, timestamps */
-  --border: #DDD4CA;    /* tan - borders between things */
-  --now: #C75B3A;       /* terracotta/rust - Now column accent */
-  --now-soft: #F0DDD4;  /* light rust */
-  --soon: #3F7D6A;      /* forest teal - Soon accent */
-  --soon-soft: #DCEAE4; /* light teal */
-  --later: #8A7B70;     /* warm grey-brown - Later accent */
-  --later-soft: #E8E2DC;/* light taupe */
+  --bg: #f4efea; /* warm cream - page background */
+  --column-bg: #eae2d9; /* slightly darker cream - column background */
+  --card-bg: #fcfaf8; /* almost white - task card */
+  --text: #2e231e; /* dark brown - main words */
+  --text-soft: #7a6b62; /* lighter brown - small words, timestamps */
+  --border: #ddd4ca; /* tan - borders between things */
+  --now: #c75b3a; /* terracotta/rust - Now column accent */
+  --now-soft: #f0ddd4; /* light rust */
+  --soon: #3f7d6a; /* forest teal - Soon accent */
+  --soon-soft: #dceae4; /* light teal */
+  --later: #8a7b70; /* warm grey-brown - Later accent */
+  --later-soft: #e8e2dc; /* light taupe */
 }
 ```
 
@@ -478,6 +514,7 @@ These are CSS variables (custom properties). Like colour buckets. We write `--bg
 The colours are like Lagos earth and clay. Warm, not cold. No blue, no purple, no AI look.
 
 **Lines 22-26** — html:
+
 ```css
 html {
   font-size: 16px;
@@ -485,29 +522,39 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 ```
+
 Make text look smooth and clear on screens (not jaggy).
 
 **Lines 28-33** — body:
+
 ```css
 body {
-  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-family:
+    "DM Sans",
+    system-ui,
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
 ```
+
 The whole page:
+
 - Uses DM Sans font (or falls back to system fonts if Google doesn't load)
 - Cream background
 - Dark brown text
 - At least as tall as the screen (`100vh` = 100% of the viewport height)
 
 **Lines 35-37** — #root:
+
 ```css
 #root {
   min-height: 100vh;
 }
 ```
+
 The div where React lives should also be at least as tall as the screen.
 
 ---
@@ -515,6 +562,7 @@ The div where React lives should also be at least as tall as the screen.
 ## `src/App.css` — The Furniture in Each Room
 
 **Lines 1-5** — `.app`:
+
 ```css
 .app {
   max-width: 960px;
@@ -522,15 +570,17 @@ The div where React lives should also be at least as tall as the screen.
   padding: 48px 24px 80px;
 }
 ```
+
 The whole app: 960 pixels wide at most. Centred on the page. Padding top and sides so it doesn't touch the edges.
 
 **Lines 7-9** — `.header`:
 Just 32px space below the header.
 
 **Lines 11-18** — `.title`:
+
 ```css
 .title {
-  font-family: 'DM Serif Display', Georgia, serif;
+  font-family: "DM Serif Display", Georgia, serif;
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 400;
   line-height: 1.1;
@@ -538,7 +588,9 @@ Just 32px space below the header.
   color: var(--text);
 }
 ```
+
 The "Wahala Sorter" title:
+
 - Uses the fancy serif font (with feet)
 - `clamp(2rem, 5vw, 3rem)` — "Be between 2 and 3 font-sizes big. On a phone, be smaller. On a big screen, be bigger." Like a rubber band.
 - `line-height: 1.1` — Tight spacing between lines
@@ -552,6 +604,7 @@ Flexbox layout. The input and button sit side by side with 8px gap. 36px space b
 
 **Lines 33-53** — `.add-input`:
 The text box:
+
 - Takes up remaining space (`flex: 1`)
 - 12px padding inside for comfortable typing
 - A 2px tan border
@@ -561,12 +614,14 @@ The text box:
 
 **Lines 55-74** — `.add-btn`:
 The Add button:
+
 - Terracotta background + matching border
 - White text, bold
 - When disabled: faded to 35% opacity + "no clicking" cursor
 - When hovered and not disabled: slightly faded (opacity 0.9)
 
 **Lines 76-81** — `.board`:
+
 ```css
 .board {
   display: grid;
@@ -575,6 +630,7 @@ The Add button:
   align-items: start;
 }
 ```
+
 A grid with three equal columns. 16px gaps between them. `align-items: start` means each column starts at the top (if one is shorter, it doesn't stretch).
 
 **Lines 83-92** — `.column`:
@@ -602,15 +658,24 @@ The area where tasks sit. 8px padding, tasks stacked vertically with 6px gaps, a
 Italic, soft brown, centred, semi-transparent. Says "Empty. For now."
 
 **Lines 143-145** — Column colours:
+
 ```css
-.column:nth-child(1) .column-title { color: var(--now); }
-.column:nth-child(2) .column-title { color: var(--soon); }
-.column:nth-child(3) .column-title { color: var(--later); }
+.column:nth-child(1) .column-title {
+  color: var(--now);
+}
+.column:nth-child(2) .column-title {
+  color: var(--soon);
+}
+.column:nth-child(3) .column-title {
+  color: var(--later);
+}
 ```
+
 First column → terracotta title. Second → teal. Third → taupe. `nth-child(1)` = "the first child of its parent."
 
 **Lines 147-156** — `.task`:
 A task card:
+
 - Flexbox layout (content on left, × button on right)
 - 12px padding, white-ish background
 - `cursor: grab` — the mouse hand changes to a "grab" hand
@@ -633,14 +698,24 @@ The × button. 24x24 pixels. Hidden (`opacity: 0`) until you hover over the task
 When you hover over a task, its delete button appears. When you hover over the delete button itself, it turns terracotta (danger colour).
 
 **Lines 207-220** — The phone rules:
+
 ```css
 @media (max-width: 700px) {
-  .app { padding: 28px 16px 60px; }
-  .board { grid-template-columns: 1fr; gap: 12px; }
-  .add-form { flex-direction: column; }
+  .app {
+    padding: 28px 16px 60px;
+  }
+  .board {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .add-form {
+    flex-direction: column;
+  }
 }
 ```
+
 `@media (max-width: 700px)` — "If the screen is 700px wide or smaller (like a phone)":
+
 - Less padding around the app
 - The board stacks into ONE column instead of three
 - The add form stacks (input on top, button below)

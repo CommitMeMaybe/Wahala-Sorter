@@ -24,9 +24,10 @@ interface TaskCardProps {
   selectionMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  onDragTouchMove?: (id: string, clientX: number) => void;
 }
 
-export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMove, onUpdate, onDragStart, onDragEnd, touchDragId, onTouchDragStart, onTouchDragCancel, selectionMode, selected, onToggleSelect }: TaskCardProps) {
+export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMove, onUpdate, onDragStart, onDragEnd, touchDragId, onTouchDragStart, onTouchDragCancel, selectionMode, selected, onToggleSelect, onDragTouchMove }: TaskCardProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
   const [expanded, setExpanded] = useState(false);
@@ -36,6 +37,7 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
   const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
   const longPressInterval = useRef<number | undefined>(undefined);
   const longPressFired = useRef(false);
+  const wasDraggedRef = useRef(false);
 
   const idx = columns.indexOf(task.column);
   const rot = useMemo(() => `${(crypto.getRandomValues(new Uint32Array(1))[0] / 0xFFFFFFFF - 0.5) * 1.5}deg`, []);
@@ -71,17 +73,23 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
   }, [task.id, onTouchDragStart, isLifted, clearLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isLifted) {
+      wasDraggedRef.current = true;
+      onDragTouchMove?.(task.id, e.touches[0].clientX);
+      return;
+    }
     if (longPressStartPos.current) {
       const touch = e.touches[0];
       if (Math.abs(touch.clientX - longPressStartPos.current.x) > 10 || Math.abs(touch.clientY - longPressStartPos.current.y) > 10) clearLongPress();
     }
-  }, [clearLongPress]);
+  }, [isLifted, clearLongPress, onDragTouchMove, task.id]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const fired = longPressFired.current;
     clearLongPress();
     if (fired) e.preventDefault();
     longPressFired.current = false;
+    if (!fired) wasDraggedRef.current = false;
   }, [clearLongPress]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -111,7 +119,10 @@ export function TaskCard({ task, now, columns, projects, onDelete, onEdit, onMov
 
   const handleTap = () => {
     if (selectionMode) { onToggleSelect?.(task.id); return; }
-    if (isLifted) { onTouchDragCancel?.(); return; }
+    if (isLifted) {
+      if (wasDraggedRef.current) { wasDraggedRef.current = false; return; }
+      onTouchDragCancel?.(); return;
+    }
   };
 
   const handleSelectClick = (e: React.MouseEvent) => { e.stopPropagation(); onToggleSelect?.(task.id); };

@@ -1,7 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import type { Task, ColumnId } from './types';
-import type { AppSettings } from './types';
+import type { Task, ColumnId, AppSettings } from './types';
 import { INITIAL_TASKS, INITIAL_PROJECTS } from './data/seed';
 import { Board } from './components/Board';
 import { Toast, type ToastState } from './components/Toast';
@@ -15,6 +13,7 @@ import { WeekSummaryCard } from './components/WeekSummary';
 import { Confetti } from './components/Confetti';
 import { loadTasks, saveTasks, loadTrash, saveTrash, loadProjects, saveProjects, loadSettings, saveSettings } from './utils/storage';
 import { nextOccurrence } from './utils/recurrence';
+import { getWeekStart } from './utils/time';
 import { playTaskComplete, playTaskDelete, playTaskMove, playTaskAdd } from './utils/sounds';
 import { exportBackup, importBackup } from './utils/backup';
 import './App.css';
@@ -178,18 +177,6 @@ function App() {
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
-  const touchDragIdRef = useRef<string | null>(null);
-  touchDragIdRef.current = touchDragId;
-  const scrollDirRef = useRef(0);
-  const scrollRafRef = useRef<number | undefined>(undefined);
-
-  const doAutoScroll = useCallback(() => {
-    const board = document.querySelector('.board') as HTMLElement | null;
-    if (!board || scrollDirRef.current === 0) { scrollRafRef.current = undefined; return; }
-    board.scrollLeft += scrollDirRef.current * 8;
-    scrollRafRef.current = requestAnimationFrame(doAutoScroll);
-  }, []);
-
   const setZoomSafe = useCallback((v: number) => {
     setZoom(Math.max(0.4, Math.min(1.45, +v.toFixed(2))));
     setZoomFlashKey(k => k + 1);
@@ -212,21 +199,9 @@ function App() {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       setZoomSafe(pinchRef.current.zoom * (Math.hypot(dx, dy) / pinchRef.current.dist));
     }
-    if (e.touches.length === 1 && touchDragIdRef.current) {
-      const touch = e.touches[0];
-      let dir = 0;
-      if (touch.clientX >= window.innerWidth - 40) dir = 1;
-      else if (touch.clientX <= 40) dir = -1;
-      if (dir !== scrollDirRef.current) {
-        scrollDirRef.current = dir;
-        if (dir !== 0 && scrollRafRef.current === undefined) scrollRafRef.current = requestAnimationFrame(doAutoScroll);
-      }
-    }
-  }, [setZoomSafe, doAutoScroll]);
+  }, [setZoomSafe]);
   const handleTouchEnd = useCallback(() => {
     pinchRef.current = null;
-    scrollDirRef.current = 0;
-    if (scrollRafRef.current !== undefined) { cancelAnimationFrame(scrollRafRef.current); scrollRafRef.current = undefined; }
   }, []);
   const handleWheel = useCallback((e: WheelEvent) => {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoomSafe(zoomRef.current - e.deltaY * 0.002); }
@@ -249,8 +224,75 @@ function App() {
     el.addEventListener('touchmove', handleTouchMove, { passive: true });
     el.addEventListener('touchend', handleTouchEnd);
     el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => { el.removeEventListener('touchstart', handleTouchStart); el.removeEventListener('touchmove', handleTouchMove); el.removeEventListener('touchend', handleTouchEnd); el.removeEventListener('wheel', handleWheel); };
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener('wheel', handleWheel);
+    };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd, handleWheel]);
+
+  // --- rAF-based auto-scroll for touch drag ---
+  const touchPosRef = useRef<{ x: number } | null>(null);
+  const autoScrollRafRef = useRef<number | undefined>(undefined);
+  const autoScrollDirRef = useRef(0);
+  const autoScrollBoardRef = useRef<HTMLElement | null>(null);
+
+  const handleDragTouchMove = useCallback((_id: string, clientX: number) => {
+    touchPosRef.current = { x: clientX };
+  }, []);
+
+  const autoScrollLoop = useCallback(() => {
+    const board = autoScrollBoardRef.current;
+    if (!board) { autoScrollRafRef.current = undefined; return; }
+    if (touchPosRef.current === null) {
+      autoScrollRafRef.current = requestAnimationFrame(autoScrollLoop);
+      return;
+    }
+    const edgeZone = window.innerWidth * 0.25;
+    const x = touchPosRef.current.x;
+    let dir = 0;
+    let speed = 0;
+    if (x >= window.innerWidth - edgeZone) {
+      dir = 1;
+      speed = 8 + ((x - (window.innerWidth - edgeZone)) / edgeZone) * 24;
+    } else if (x <= edgeZone) {
+      dir = -1;
+      speed = 8 + ((edgeZone - x) / edgeZone) * 24;
+    }
+    if (dir !== autoScrollDirRef.current) {
+      autoScrollDirRef.current = dir;
+      if (dir === 0) board.style.scrollSnapType = '';
+      else board.style.scrollSnapType = 'none';
+    }
+    if (dir !== 0) board.scrollLeft += dir * Math.round(speed);
+    autoScrollRafRef.current = requestAnimationFrame(autoScrollLoop);
+  }, []);
+
+  useEffect(() => {
+    if (touchDragId) {
+      autoScrollBoardRef.current = document.querySelector('.board') as HTMLElement | null;
+      touchPosRef.current = null;
+      autoScrollDirRef.current = 0;
+      autoScrollRafRef.current = requestAnimationFrame(autoScrollLoop);
+    } else {
+      if (autoScrollRafRef.current !== undefined) {
+        cancelAnimationFrame(autoScrollRafRef.current);
+        autoScrollRafRef.current = undefined;
+      }
+      touchPosRef.current = null;
+      autoScrollDirRef.current = 0;
+      const b = autoScrollBoardRef.current || document.querySelector('.board') as HTMLElement | null;
+      if (b) b.style.scrollSnapType = '';
+      autoScrollBoardRef.current = null;
+    }
+    return () => {
+      if (autoScrollRafRef.current !== undefined) {
+        cancelAnimationFrame(autoScrollRafRef.current);
+        autoScrollRafRef.current = undefined;
+      }
+    };
+  }, [touchDragId, autoScrollLoop]);
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
@@ -337,17 +379,11 @@ function App() {
     });
   }, [showToast]);
 
-  const getWeekStartStr = (d: Date) => {
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().slice(0, 10);
-  };
   const computeWeekStats = (tasksList: Task[]) => {
     const map = new Map<string, { completed: number; added: number }>();
     for (const t of tasksList) {
-      if (t.completedAt) { const w = getWeekStartStr(new Date(t.completedAt)); const e = map.get(w) || { completed: 0, added: 0 }; e.completed++; map.set(w, e); }
-      const w = getWeekStartStr(new Date(t.createdAt)); const e = map.get(w) || { completed: 0, added: 0 }; e.added++; map.set(w, e);
+      if (t.completedAt) { const w = getWeekStart(t.completedAt); const e = map.get(w) || { completed: 0, added: 0 }; e.completed++; map.set(w, e); }
+      const w = getWeekStart(t.createdAt); const e = map.get(w) || { completed: 0, added: 0 }; e.added++; map.set(w, e);
     }
     return Array.from(map.entries()).map(([ws, v]) => ({ weekStart: ws, ...v, streaks: 0 })).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
   };
@@ -435,14 +471,12 @@ function App() {
       )}
 
       <div className="zoom-area" ref={zoomAreaRef} style={{ '--zoom': zoom } as React.CSSProperties}>
-        <AnimatePresence mode="popLayout">
-          <Board key="board" tasksByColumn={tasksByColumn} columns={COLUMNS.map(c => ({ id: c, label: settings.columnLabels[c], description: settings.columnDescriptions[c] }))}
-            now={now} projects={projects} dragOver={dragOver} touchDragId={touchDragId} selectionMode={selectionMode} selectedIds={selectedIds}
-            emptyMessages={EMPTY_MESSAGES} sortMode={settings.defaultSort}
-            onDelete={deleteTask} onEdit={editTask} onMove={moveTask} onUpdate={updateTask} onClearColumn={clearColumn}
-            onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
-            onTouchDragStart={handleTouchDragStart} onTouchDrop={handleTouchDrop} onTouchDragCancel={handleTouchDragCancel} onToggleSelect={toggleSelectId} />
-        </AnimatePresence>
+        <Board key="board" tasksByColumn={tasksByColumn} columns={COLUMNS.map(c => ({ id: c, label: settings.columnLabels[c], description: settings.columnDescriptions[c] }))}
+          now={now} projects={projects} dragOver={dragOver} touchDragId={touchDragId} selectionMode={selectionMode} selectedIds={selectedIds}
+          emptyMessages={EMPTY_MESSAGES} sortMode={settings.defaultSort}
+          onDelete={deleteTask} onEdit={editTask} onMove={moveTask} onUpdate={updateTask} onClearColumn={clearColumn}
+          onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+          onTouchDragStart={handleTouchDragStart} onTouchDrop={handleTouchDrop} onTouchDragCancel={handleTouchDragCancel} onToggleSelect={toggleSelectId} onDragTouchMove={handleDragTouchMove} />
       </div>
 
       {currentWeek && <WeekSummaryCard {...currentWeek} />}

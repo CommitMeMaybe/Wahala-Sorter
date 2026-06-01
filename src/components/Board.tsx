@@ -1,3 +1,4 @@
+// Board component for Wahala Sorter
 import type { Task, ColumnId, ColumnConfig, Project } from '../types';
 import { Column as ColumnComponent } from './Column';
 
@@ -26,20 +27,72 @@ interface BoardProps {
   onTouchDrop: (col: ColumnId) => void;
   onTouchDragCancel: () => void;
   onToggleSelect?: (id: string) => void;
+  onDragTouchMove?: (id: string, clientX: number) => void;
 }
 
-export function Board({ tasksByColumn, columns, now, projects, dragOver, touchDragId, selectionMode, selectedIds, emptyMessages, sortMode, onDelete, onEdit, onMove, onUpdate, onClearColumn, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onTouchDragStart, onTouchDrop, onTouchDragCancel, onToggleSelect }: BoardProps) {
-  const columnIds: ColumnId[] = columns.map((c: ColumnConfig) => c.id);
+export function Board({
+  tasksByColumn,
+  columns,
+  now,
+  projects,
+  dragOver,
+  touchDragId,
+  selectionMode,
+  selectedIds,
+  emptyMessages,
+  sortMode,
+  onDelete,
+  onEdit,
+  onMove,
+  onUpdate,
+  onClearColumn,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onTouchDragStart,
+  onTouchDrop,
+  onTouchDragCancel,
+  onToggleSelect,
+  onDragTouchMove,
+}: BoardProps) {
+  const columnIds: ColumnId[] = columns.map(c => c.id);
 
   return (
-    <div className={`board ${touchDragId ? 'board--touch-dragging' : ''}`}>
+    <div
+      className={`board ${touchDragId ? 'board--touch-dragging' : ''}`}
+    >
       {columns.map((col: ColumnConfig) => (
-        <ColumnComponent key={col.id} column={col} tasks={tasksByColumn[col.id]} now={now} columnIds={columnIds} projects={projects}
-          dragOver={dragOver} touchDragId={touchDragId} selectionMode={selectionMode} selectedIds={selectedIds}
-          emptyMessage={emptyMessages[col.id]} sortMode={sortMode}
-          onDelete={onDelete} onEdit={onEdit} onMove={onMove} onUpdate={onUpdate} onClearColumn={onClearColumn}
-          onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
-          onTouchDragStart={onTouchDragStart} onTouchDrop={onTouchDrop} onTouchDragCancel={onTouchDragCancel} onToggleSelect={onToggleSelect} />
+        <ColumnComponent
+          key={col.id}
+          column={col}
+          tasks={tasksByColumn[col.id]}
+          now={now}
+          columnIds={columnIds}
+          projects={projects}
+          dragOver={dragOver}
+          touchDragId={touchDragId}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          emptyMessage={emptyMessages[col.id]}
+          sortMode={sortMode}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onMove={onMove}
+          onUpdate={onUpdate}
+          onClearColumn={onClearColumn}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onTouchDragStart={onTouchDragStart}
+          onTouchDrop={onTouchDrop}
+          onTouchDragCancel={onTouchDragCancel}
+          onToggleSelect={onToggleSelect}
+          onDragTouchMove={onDragTouchMove}
+        />
       ))}
     </div>
   );

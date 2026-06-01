@@ -27,6 +27,7 @@ interface ColumnProps {
   onTouchDrop: (col: ColumnId) => void;
   onTouchDragCancel: () => void;
   onToggleSelect?: (id: string) => void;
+  onDragTouchMove?: (id: string, clientX: number) => void;
 }
 
 function sortTasks(tasks: Task[], mode: ColumnProps['sortMode']): Task[] {
@@ -39,20 +40,21 @@ function sortTasks(tasks: Task[], mode: ColumnProps['sortMode']): Task[] {
   }
 }
 
-export function Column({ column, tasks, now, columnIds, projects, dragOver, touchDragId, selectionMode, selectedIds, emptyMessage, sortMode, onDelete, onEdit, onMove, onUpdate, onClearColumn, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onTouchDragStart, onTouchDrop, onTouchDragCancel, onToggleSelect }: ColumnProps) {
+export function Column({ column, tasks, now, columnIds, projects, dragOver, touchDragId, selectionMode, selectedIds, emptyMessage, sortMode, onDelete, onEdit, onMove, onUpdate, onClearColumn, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onTouchDragStart, onTouchDrop, onTouchDragCancel, onToggleSelect, onDragTouchMove }: ColumnProps) {
   const isDragOver = dragOver === column.id;
   const isEmpty = tasks.length === 0;
   const isTouchTarget = touchDragId !== null && !tasks.some(t => t.id === touchDragId);
   const sorted = sortTasks(tasks, sortMode);
 
   return (
-    <div className={`column column--${column.id} ${isDragOver ? 'column--drag-over' : ''} ${isTouchTarget ? 'column--drop-target' : ''} ${isEmpty ? 'column--empty' : ''}`}
+    <div className={`column column--${column.id} ${isDragOver ? 'column--drag-over' : ''} ${isTouchTarget ? 'column--drop-target' : ''} ${isEmpty ? 'column--empty' : ''}`} data-col-id={column.id}
       role="group"
       aria-label={`${column.label} column with ${tasks.length} tasks`}
       onDragOver={e => onDragOver(e, column.id)}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, column.id)}
       onClick={isTouchTarget ? () => onTouchDrop(column.id) : undefined}
+      onTouchEnd={isTouchTarget ? () => onTouchDrop(column.id) : undefined}
     >
       <div className="column-header">
         <div className="column-title-row">
@@ -70,7 +72,7 @@ export function Column({ column, tasks, now, columnIds, projects, dragOver, touc
         {sorted.map(task => (
           <TaskCard key={task.id} task={task} now={now} columns={columnIds} projects={projects} onDelete={onDelete} onEdit={onEdit} onMove={onMove} onUpdate={onUpdate}
             onDragStart={onDragStart} onDragEnd={onDragEnd} touchDragId={touchDragId} onTouchDragStart={onTouchDragStart} onTouchDragCancel={onTouchDragCancel}
-            selectionMode={selectionMode} selected={selectedIds?.has(task.id)} onToggleSelect={onToggleSelect} />
+            selectionMode={selectionMode} selected={selectedIds?.has(task.id)} onToggleSelect={onToggleSelect} onDragTouchMove={onDragTouchMove} />
         ))}
       </div>
 
